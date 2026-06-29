@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 export type UserRole = 'admin' | 'enseignant' | 'secretariat';
 
@@ -15,6 +15,7 @@ interface AuthContextType {
   loginAsGuest: () => void;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole[]) => boolean;
+  switchRole: (role: UserRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   loginAsGuest: () => {},
   logout: async () => {},
   hasRole: () => false,
+  switchRole: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -144,8 +146,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return roles.includes(userRole);
   };
 
+  const switchRole = async (newRole: UserRole) => {
+    setUserRole(newRole);
+    if (currentUser && currentUser.uid !== "guest-user") {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          role: newRole
+        });
+      } catch (error) {
+        console.error("Error updating role in Firestore:", error);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, schoolId, schoolName, userRole, loading, demoExpired, loginAsGuest, logout, hasRole }}>
+    <AuthContext.Provider value={{ currentUser, schoolId, schoolName, userRole, loading, demoExpired, loginAsGuest, logout, hasRole, switchRole }}>
         {children}
     </AuthContext.Provider>
   );

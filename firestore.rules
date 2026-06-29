@@ -1,33 +1,67 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Function to get the current user's document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the user belongs to the specified school
+    function belongsToSchool(schoolId) {
+      return isAuthenticated() && getUserData().schoolId == schoolId;
+    }
+
+    // Check if the user has a specific role
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    function isDemo(schoolId) {
+      return schoolId == 'school-demo';
+    }
+
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAuthenticated() && (request.auth.uid == userId || hasRole('admin'));
     }
 
     match /schools/{schoolId} {
-      allow read, write: if true;
+      allow read: if isDemo(schoolId) || belongsToSchool(schoolId);
+      allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && hasRole('admin'));
 
       match /students/{studentId} {
-        allow read, write: if true;
+        allow read: if isDemo(schoolId) || belongsToSchool(schoolId);
+        allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat')));
       }
       match /classes/{classId} {
-        allow read, write: if true;
+        allow read: if isDemo(schoolId) || belongsToSchool(schoolId);
+        allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat')));
       }
       match /teachers/{teacherId} {
-        allow read, write: if true;
+        allow read: if isDemo(schoolId) || belongsToSchool(schoolId);
+        allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat')));
       }
       match /subjects/{subjectId} {
-        allow read, write: if true;
+        allow read: if isDemo(schoolId) || belongsToSchool(schoolId);
+        allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat')));
       }
       match /schedules/{scheduleId} {
-        allow read, write: if true;
+        allow read: if isDemo(schoolId) || belongsToSchool(schoolId);
+        allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat') || hasRole('enseignant')));
       }
       match /invoices/{invoiceId} {
-        allow read, write: if true;
+        allow read: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat')));
+        allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat')));
       }
       match /attendance/{attendanceId} {
-        allow read, write: if true;
+        allow read: if isDemo(schoolId) || belongsToSchool(schoolId);
+        allow write: if isDemo(schoolId) || (belongsToSchool(schoolId) && (hasRole('admin') || hasRole('secretariat') || hasRole('enseignant')));
       }
     }
   }

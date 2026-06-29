@@ -79,6 +79,47 @@ export default function StudentManager({
   const [pageSize, setPageSize] = useState(10);
 
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailResult, setEmailResult] = useState<{success: boolean, message: string} | null>(null);
+
+  const handleSendBulletinEmail = async () => {
+    if (!selectedStudentForBulletin || !selectedStudentForBulletin.parentEmail) {
+       setEmailResult({ success: false, message: 'Email du parent manquant.' });
+       setTimeout(() => setEmailResult(null), 3000);
+       return;
+    }
+    
+    setIsSendingEmail(true);
+    setEmailResult(null);
+
+    try {
+      const response = await fetch('/api/email/send-bulletin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: selectedStudentForBulletin.parentEmail,
+          studentName: `${selectedStudentForBulletin.firstName} ${selectedStudentForBulletin.lastName}`,
+          term: bulletinSemester,
+          academicYear: bulletinAcademicYear,
+          grades: gradeRecords.map(rec => ({
+             subject: rec.name,
+             value: ((rec.cc + rec.exam) / 2).toFixed(2)
+          }))
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+         setEmailResult({ success: true, message: 'Bulletin envoyé par email avec succès !' });
+      } else {
+         setEmailResult({ success: false, message: 'Erreur: ' + data.error });
+      }
+    } catch (e: any) {
+      setEmailResult({ success: false, message: 'Erreur de connexion au serveur.' });
+    } finally {
+      setIsSendingEmail(false);
+      setTimeout(() => setEmailResult(null), 4000);
+    }
+  };
 
   const handlePrintDoc = async (elementId: string, title: string) => {
     const el = document.getElementById(elementId);
@@ -1217,10 +1258,31 @@ export default function StudentManager({
 
                  {/* Action Buttons */}
                  <div className="space-y-2 pt-3 border-t border-slate-100">
+                   {emailResult && (
+                     <div className={`p-2 rounded-lg text-[10px] font-bold text-center ${emailResult.success ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                       {emailResult.message}
+                     </div>
+                   )}
+                   <button
+                     type="button"
+                     onClick={handleSendBulletinEmail}
+                     disabled={isSendingEmail || isExportingPDF}
+                     className={`w-full py-2.5 rounded-xl text-xs text-white bg-indigo-600 hover:bg-indigo-700 font-extrabold flex items-center justify-center gap-2 transition shadow-md ${isSendingEmail ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'}`}
+                   >
+                     {isSendingEmail ? (
+                       <>
+                         <Loader2 className="h-4 w-4 animate-spin" /> Envoi en cours...
+                       </>
+                     ) : (
+                       <>
+                         <Mail className="h-4 w-4" /> Envoyer par E-mail (Serveur)
+                       </>
+                     )}
+                   </button>
                    <button
                      type="button"
                      onClick={() => handlePrintDoc("school-bulletin-print-area", `Bulletin_${selectedStudentForBulletin?.firstName}`)}
-                     disabled={isExportingPDF}
+                     disabled={isExportingPDF || isSendingEmail}
                      className={`w-full py-2.5 rounded-xl text-xs text-white bg-emerald-600 hover:bg-emerald-700 font-extrabold flex items-center justify-center gap-2 transition shadow-md ${isExportingPDF ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'}`}
                    >
                      {isExportingPDF ? (

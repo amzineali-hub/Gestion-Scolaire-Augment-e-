@@ -196,6 +196,10 @@ export default function Communicator({ students, classes, schoolName }: Communic
     }
   };
 
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  const [sendResult, setSendResult] = useState<{ type: 'email' | 'whatsapp', success: boolean, message: string } | null>(null);
+
   const activeTemplate = templates[category];
 
   const handleCopy = () => {
@@ -204,21 +208,78 @@ export default function Communicator({ students, classes, schoolName }: Communic
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     const parentEmail = student?.parentEmail || "";
-    const mailtoUrl = `mailto:${parentEmail}?subject=${encodeURIComponent(activeTemplate.subject)}&body=${encodeURIComponent(activeTemplate.message)}`;
-    window.location.href = mailtoUrl;
+    if (!parentEmail) {
+       setSendResult({ type: 'email', success: false, message: 'Email du parent manquant.'});
+       setTimeout(() => setSendResult(null), 3000);
+       return;
+    }
+    setSendingEmail(true);
+    setSendResult(null);
+    try {
+      const response = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: parentEmail,
+          subject: activeTemplate.subject,
+          text: activeTemplate.message
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+         setSendResult({ type: 'email', success: true, message: 'E-mail envoyé avec succès (Serveur) !'});
+      } else {
+         setSendResult({ type: 'email', success: false, message: 'Erreur: ' + data.error});
+      }
+    } catch (e: any) {
+      setSendResult({ type: 'email', success: false, message: 'Erreur de connexion au serveur.'});
+    } finally {
+      setSendingEmail(false);
+      setTimeout(() => setSendResult(null), 4000);
+    }
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     const parentPhoneClean = student?.parentPhone ? student.parentPhone.replace(/\s+/g, "") : "";
-    // Format Moroccan phone number
+    if (!parentPhoneClean) {
+       setSendResult({ type: 'whatsapp', success: false, message: 'Téléphone du parent manquant.'});
+       setTimeout(() => setSendResult(null), 3000);
+       return;
+    }
+    
+    // Format Moroccan phone number for Twilio (requires +212)
     let phoneFormat = parentPhoneClean;
     if (phoneFormat.startsWith("0")) {
-      phoneFormat = "212" + phoneFormat.substring(1);
+      phoneFormat = "+212" + phoneFormat.substring(1);
+    } else if (!phoneFormat.startsWith("+")) {
+      phoneFormat = "+" + phoneFormat;
     }
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${phoneFormat}&text=${encodeURIComponent(activeTemplate.message)}`;
-    window.open(whatsappUrl, "_blank");
+
+    setSendingWhatsApp(true);
+    setSendResult(null);
+    try {
+      const response = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: phoneFormat,
+          message: activeTemplate.message
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+         setSendResult({ type: 'whatsapp', success: true, message: 'Message WhatsApp envoyé avec succès (Twilio) !'});
+      } else {
+         setSendResult({ type: 'whatsapp', success: false, message: 'Erreur: ' + data.error});
+      }
+    } catch (e: any) {
+      setSendResult({ type: 'whatsapp', success: false, message: 'Erreur de connexion au serveur.'});
+    } finally {
+      setSendingWhatsApp(false);
+      setTimeout(() => setSendResult(null), 4000);
+    }
   };
 
   return (
@@ -455,19 +516,47 @@ export default function Communicator({ students, classes, schoolName }: Communic
                 <button
                   type="button"
                   onClick={handleWhatsApp}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-xs transition focus:outline-none"
+                  disabled={sendingWhatsApp}
+                  className={`bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-xs transition focus:outline-none ${sendingWhatsApp ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  <Smartphone className="h-4 w-4" /> WhatsApp Parent
+                  {sendingWhatsApp ? (
+                    <>
+                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                       Envoi en cours...
+                    </>
+                  ) : (
+                    <>
+                       <Smartphone className="h-4 w-4" /> WhatsApp Parent
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={handleSendEmail}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-xs transition focus:outline-none"
+                  disabled={sendingEmail}
+                  className={`bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-xs transition focus:outline-none ${sendingEmail ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  <Mail className="h-4 w-4" /> Envoyer par E-mail
+                  {sendingEmail ? (
+                    <>
+                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                       Envoi en cours...
+                    </>
+                  ) : (
+                     <>
+                        <Mail className="h-4 w-4" /> Envoyer par E-mail
+                     </>
+                  )}
                 </button>
               </div>
             </div>
+            
+            {/* Feedback messages */}
+            {sendResult && (
+              <div className={`mx-5 mb-5 p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${sendResult.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                {sendResult.success ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                {sendResult.message}
+              </div>
+            )}
 
           </div>
         </div>

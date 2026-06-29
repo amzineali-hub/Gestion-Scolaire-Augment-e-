@@ -16,6 +16,8 @@ export const INITIAL_SUBJECTS: Subject[] = [
   { id: "sub-11", name: "Sciences de la Vie et de la Terre", code: "SVT_L", cycle: "Lycée", hoursPerWeek: 3 },
   { id: "sub-12", name: "Philosophie", code: "PHI_L", cycle: "Lycée", hoursPerWeek: 2 },
   { id: "sub-13", name: "Histoire-Géographie", code: "HIS_L", cycle: "Lycée", hoursPerWeek: 2 },
+  { id: "sub-14", name: "Éducation Islamique", code: "ISL_C", cycle: "Collège", hoursPerWeek: 2 },
+  { id: "sub-15", name: "Éducation Islamique", code: "ISL_L", cycle: "Lycée", hoursPerWeek: 2 },
 ];
 
 export const INITIAL_CLASSES: Class[] = [
@@ -87,8 +89,8 @@ export const INITIAL_TEACHERS: Teacher[] = [
     lastName: "Alaoui",
     email: "k.alaoui@madrasati.ma",
     phone: "0665678901",
-    subjectIds: ["sub-1", "sub-4", "sub-12", "sub-13"], // Arabic, History, Philosophy, Islamic
-    classIds: ["cls-1", "cls-2", "cls-5", "cls-6"],
+    subjectIds: ["sub-1", "sub-4", "sub-12", "sub-13", "sub-14", "sub-15"], // Arabic, History, Philosophy, Islamic
+    classIds: ["cls-1", "cls-2", "cls-3", "cls-4", "cls-5", "cls-6"],
     salaryType: "mensuel",
     salaryValue: 8500,
     status: "actif"
@@ -125,13 +127,15 @@ export const INITIAL_SCHEDULES: ScheduleItem[] = [
   { id: "sch-4", classId: "cls-3", teacherId: "tch-1", subjectId: "sub-5", day: "Lundi", startTime: "08:30", endTime: "10:30", room: "Salle 22" },
   { id: "sch-5", classId: "cls-3", teacherId: "tch-3", subjectId: "sub-6", day: "Lundi", startTime: "10:45", endTime: "12:15", room: "Labo Physique" },
   { id: "sch-6", classId: "cls-3", teacherId: "tch-4", subjectId: "sub-7", day: "Mercredi", startTime: "14:30", endTime: "16:30", room: "Salle 22" },
+  { id: "sch-12", classId: "cls-3", teacherId: "tch-5", subjectId: "sub-14", day: "Jeudi", startTime: "08:30", endTime: "10:30", room: "Salle 22" },
 
   // 2ème BAC PC (cls-5)
   { id: "sch-7", classId: "cls-5", teacherId: "tch-1", subjectId: "sub-9", day: "Mardi", startTime: "08:30", endTime: "10:30", room: "Salle 31" },
   { id: "sch-8", classId: "cls-5", teacherId: "tch-3", subjectId: "sub-10", day: "Mardi", startTime: "14:30", endTime: "16:30", room: "Labo Physique" },
   { id: "sch-9", classId: "cls-5", teacherId: "tch-4", subjectId: "sub-11", day: "Jeudi", startTime: "10:45", endTime: "12:15", room: "Salle 31" },
   { id: "sch-10", classId: "cls-5", teacherId: "tch-5", subjectId: "sub-12", day: "Vendredi", startTime: "08:30", endTime: "10:30", room: "Salle 31" },
-  { id: "sch-11", classId: "cls-5", teacherId: "tch-5", subjectId: "sub-13", day: "Samedi", startTime: "09:00", endTime: "12:00", room: "Salle 31" }
+  { id: "sch-11", classId: "cls-5", teacherId: "tch-5", subjectId: "sub-13", day: "Samedi", startTime: "09:00", endTime: "12:00", room: "Salle 31" },
+  { id: "sch-13", classId: "cls-5", teacherId: "tch-5", subjectId: "sub-15", day: "Mercredi", startTime: "08:30", endTime: "10:30", room: "Salle 31" }
 ];
 
 export const INITIAL_INVOICES: Invoice[] = [

@@ -150,8 +150,9 @@ export default function SettingsManager({
       // 1. Generate 10 distinct random subjects
       const subjects = [
         { name: "Informatique Avancée", code: "INF_A", cycle: "Lycée", hoursPerWeek: 4 },
-        { name: "Communication Orale", code: "COM_O", cycle: "Collège", hoursPerWeek: 2 },
-        { name: "Arts Plastiques", code: "ART", cycle: "Primaire", hoursPerWeek: 2 },
+        { name: "Éducation Islamique", code: "ISL", cycle: "Primaire", hoursPerWeek: 2 },
+        { name: "Éducation Islamique", code: "ISL_C", cycle: "Collège", hoursPerWeek: 2 },
+        { name: "Éducation Islamique", code: "ISL_L", cycle: "Lycée", hoursPerWeek: 2 },
         { name: "Robotique", code: "ROB", cycle: "Collège", hoursPerWeek: 3 },
         { name: "Physique Quantique Initiation", code: "PHY_Q", cycle: "Lycée", hoursPerWeek: 2 },
         { name: "Mathématiques Appliquées", code: "MATH_A", cycle: "Lycée", hoursPerWeek: 5 },
