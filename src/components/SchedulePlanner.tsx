@@ -42,7 +42,7 @@ export default function SchedulePlanner({
   onDeleteSchedule
 }: SchedulePlannerProps) {
   // Navigation filters
-  const [filterType, setFilterType] = useState<"class" | "teacher">("class");
+  const [filterType, setFilterType] = useState<"class" | "teacher" | "all">("all");
   const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id || "");
   const [selectedTeacherId, setSelectedTeacherId] = useState(teachers[0]?.id || "");
 
@@ -67,9 +67,10 @@ export default function SchedulePlanner({
   const visibleSchedules = schedules.filter(sch => {
     if (filterType === "class") {
       return sch.classId === selectedClassId;
-    } else {
+    } else if (filterType === "teacher") {
       return sch.teacherId === selectedTeacherId;
     }
+    return true; // "all"
   });
 
   // Calculate teacher eligible subjects based on the form teacher
@@ -263,6 +264,16 @@ export default function SchedulePlanner({
 
           <div className="inline-flex rounded-lg p-0.5 bg-slate-100">
             <button
+              onClick={() => setFilterType("all")}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition ${
+                filterType === "all" 
+                  ? "bg-white text-indigo-700 shadow-xs" 
+                  : "text-black hover:text-slate-800"
+              }`}
+            >
+              Général
+            </button>
+            <button
               onClick={() => setFilterType("class")}
               className={`px-3 py-1 text-xs font-semibold rounded-md transition ${
                 filterType === "class" 
@@ -300,7 +311,7 @@ export default function SchedulePlanner({
                 ))}
               </select>
             </div>
-          ) : (
+          ) : filterType === "teacher" ? (
             <div className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4 text-black" />
               <select
@@ -313,7 +324,7 @@ export default function SchedulePlanner({
                 ))}
               </select>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -381,10 +392,19 @@ export default function SchedulePlanner({
                             <p className="text-[10px] text-black mt-0.5 font-medium">
                               👨‍🏫 {teacherObj ? `${teacherObj.firstName[0]}. ${teacherObj.lastName}` : "Sans prof"}
                             </p>
-                          ) : (
+                          ) : filterType === "teacher" ? (
                             <p className="text-[10px] text-black mt-0.5 font-medium">
                               🏫 {classObj?.name || "Sans classe"}
                             </p>
+                          ) : (
+                            <div className="flex flex-col gap-0.5 mt-0.5">
+                              <p className="text-[10px] text-black font-medium">
+                                🏫 {classObj?.name || "Sans classe"}
+                              </p>
+                              <p className="text-[10px] text-black font-medium">
+                                👨‍🏫 {teacherObj ? `${teacherObj.firstName[0]}. ${teacherObj.lastName}` : "Sans prof"}
+                              </p>
+                            </div>
                           )}
 
                           {/* Room allocation */}
