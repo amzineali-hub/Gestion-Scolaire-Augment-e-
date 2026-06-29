@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { Student, Class, Subject } from "../types";
 import { 
   Users, 
@@ -76,46 +78,34 @@ export default function StudentManager({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const handlePrintDoc = (elementId: string, title: string) => {
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const handlePrintDoc = async (elementId: string, title: string) => {
     const el = document.getElementById(elementId);
     if (!el) return;
-    const printWindow = window.open('', '', 'width=800,height=900');
-    if (!printWindow) return;
     
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(s => s.outerHTML)
-      .join('\n');
+    setIsExportingPDF(true);
+    try {
+      const canvas = await html2canvas(el, { 
+        scale: 2, 
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
       
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title}</title>
-          ${styles}
-          <style>
-            @media print {
-              body, html { padding: 0 !important; margin: 0 !important; background: white !important; }
-              @page { margin: 10mm; }
-              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            }
-            body { padding: 24px; background: white; }
-          </style>
-        </head>
-        <body class="bg-white">
-          ${el.innerHTML}
-          <div class="no-print" style="margin-top: 40px; text-align: center; padding: 20px;">
-            <button onclick="window.print()" style="background: #059669; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-family: sans-serif; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-              Lancer l'impression
-            </button>
-          </div>
-          <style>@media print { .no-print { display: none !important; } }</style>
-          <script>
-            setTimeout(() => { window.print(); }, 500);
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${title.replace(/ /g, '_')}_${new Date().getTime()}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF", error);
+      alert("Une erreur est survenue lors de la création du PDF.");
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   // Modal states
@@ -472,10 +462,20 @@ export default function StudentManager({
           {/* Export PDF Button */}
           <button
             onClick={() => handlePrintDoc("student-list-print-area", "Liste_Eleves")}
-            className="bg-white hover:bg-slate-50 text-indigo-700 font-bold py-2 px-3.5 rounded-xl text-xs border border-indigo-200 flex items-center gap-1.5 shadow-xs transition duration-150 cursor-pointer"
+            disabled={isExportingPDF}
+            className={`bg-white text-indigo-700 font-bold py-2 px-3.5 rounded-xl text-xs border border-indigo-200 flex items-center gap-1.5 shadow-xs transition duration-150 ${isExportingPDF ? 'opacity-70 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}
           >
-            <Printer className="h-3.5 w-3.5" />
-            <span>Exporter PDF</span>
+            {isExportingPDF ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Génération...</span>
+              </>
+            ) : (
+              <>
+                <Printer className="h-3.5 w-3.5" />
+                <span>Exporter PDF</span>
+              </>
+            )}
           </button>
 
           {/* New Student Button */}
@@ -1220,9 +1220,18 @@ export default function StudentManager({
                    <button
                      type="button"
                      onClick={() => handlePrintDoc("school-bulletin-print-area", `Bulletin_${selectedStudentForBulletin?.firstName}`)}
-                     className="w-full py-2.5 rounded-xl text-xs text-white bg-emerald-600 hover:bg-emerald-700 font-extrabold flex items-center justify-center gap-2 transition hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-md"
+                     disabled={isExportingPDF}
+                     className={`w-full py-2.5 rounded-xl text-xs text-white bg-emerald-600 hover:bg-emerald-700 font-extrabold flex items-center justify-center gap-2 transition shadow-md ${isExportingPDF ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'}`}
                    >
-                     <Printer className="h-4 w-4" /> Exporter en bulletin PDF
+                     {isExportingPDF ? (
+                       <>
+                         <Loader2 className="h-4 w-4 animate-spin" /> Génération...
+                       </>
+                     ) : (
+                       <>
+                         <Printer className="h-4 w-4" /> Exporter en bulletin PDF
+                       </>
+                     )}
                    </button>
                    <button
                      type="button"

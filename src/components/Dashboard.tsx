@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import { Student, Teacher, Class, Subject, Invoice } from "../types";
 import { 
   Users, 
@@ -321,42 +322,8 @@ export default function Dashboard({
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h3 className="text-lg sm:text-xl font-bold tracking-tight">
-                    Bienvenue, {adminName}
+                    Bienvenue à Votre École !
                   </h3>
-                  {isEditingAdminName ? (
-                    <div className="flex items-center gap-1">
-                      <input 
-                        type="text" 
-                        value={tempName} 
-                        onChange={(e) => setTempName(e.target.value)}
-                        className="bg-white/20 text-white rounded px-1.5 py-0.5 text-xs font-bold border border-white/30 focus:outline-none focus:ring-1 focus:ring-white"
-                        autoFocus
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setAdminName(tempName);
-                          localStorage.setItem("madrasati_admin_name", tempName);
-                          setIsEditingAdminName(false);
-                        }}
-                        className="bg-emerald-500 hover:bg-emerald-600 px-2 py-0.5 text-[9px] font-bold rounded"
-                      >
-                        Enregistrer
-                      </button>
-                    </div>
-                  ) : (
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setTempName(adminName);
-                        setIsEditingAdminName(true);
-                      }}
-                      title="Modifier d'ici"
-                      className="p-1 bg-white/10 hover:bg-white/20 rounded-md border border-white/10 transition cursor-pointer"
-                    >
-                      <Pencil className="h-2.5 w-2.5" />
-                    </button>
-                  )}
                 </div>
                 <p className="text-xs font-medium opacity-90">
                   Bonne journée au travail
@@ -382,9 +349,11 @@ export default function Dashboard({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
             {/* Card 1 - Total Students */}
-            <div 
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("students")}
-              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer relative group flex flex-col justify-between min-h-[160px] hover:-translate-y-0.5"
+              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >
               <div className="flex justify-between items-start">
                 <div className="h-12 w-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
@@ -417,12 +386,14 @@ export default function Dashboard({
               <div className="absolute bottom-5 right-5 h-8 w-8 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 transition group-hover:bg-rose-100 group-hover:scale-110">
                 <ArrowRight className="h-4 w-4" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Card 2 - Total Teachers */}
-            <div 
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("teachers")}
-              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer relative group flex flex-col justify-between min-h-[160px] hover:-translate-y-0.5"
+              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >
               <div className="flex justify-between items-start">
                 <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
@@ -450,12 +421,14 @@ export default function Dashboard({
               <div className="absolute bottom-5 right-5 h-8 w-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 transition group-hover:bg-indigo-100 group-hover:scale-110">
                 <ArrowRight className="h-4 w-4" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Card 3 - Active Classes */}
-            <div 
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("classes")}
-              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer relative group flex flex-col justify-between min-h-[160px] hover:-translate-y-0.5"
+              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >
               <div className="flex justify-between items-start">
                 <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
@@ -483,12 +456,14 @@ export default function Dashboard({
               <div className="absolute bottom-5 right-5 h-8 w-8 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 transition group-hover:bg-amber-100 group-hover:scale-110">
                 <ArrowRight className="h-4 w-4" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Card 4 - Recovery Rate */}
-            <div 
+            <motion.div 
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("financials")}
-              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer relative group flex flex-col justify-between min-h-[160px] hover:-translate-y-0.5"
+              className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >
               <div className="flex justify-between items-start">
                 <div className="h-12 w-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
@@ -516,7 +491,7 @@ export default function Dashboard({
               <div className="absolute bottom-5 right-5 h-8 w-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 transition group-hover:bg-emerald-100 group-hover:scale-110">
                 <ArrowRight className="h-4 w-4" />
               </div>
-            </div>
+            </motion.div>
 
           </div>
 

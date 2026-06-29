@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { Invoice, Student, Class } from "../types";
 import { 
   DollarSign, 
@@ -56,47 +58,34 @@ export default function FinanceManager({
   // Alert simulation notification
   const [reminderNotification, setReminderNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
-  const handlePrintDoc = (elementId: string, title: string) => {
+  const handlePrintDoc = async (elementId: string, title: string) => {
     const el = document.getElementById(elementId);
     if (!el) return;
-    const printWindow = window.open('', '', 'width=800,height=900');
-    if (!printWindow) return;
     
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(s => s.outerHTML)
-      .join('\n');
+    setIsExportingPDF(true);
+    try {
+      const canvas = await html2canvas(el, { 
+        scale: 2, 
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
       
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title}</title>
-          ${styles}
-          <style>
-            @media print {
-              body, html { padding: 0 !important; margin: 0 !important; background: white !important; }
-              @page { margin: 10mm; }
-              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            }
-            body { padding: 24px; background: white; }
-          </style>
-        </head>
-        <body class="bg-white">
-          ${el.innerHTML}
-          <div class="no-print" style="margin-top: 40px; text-align: center; padding: 20px;">
-            <button onclick="window.print()" style="background: #059669; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-family: sans-serif; font-weight: bold; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-              Lancer l'impression
-            </button>
-          </div>
-          <style>@media print { .no-print { display: none !important; } }</style>
-          <script>
-            setTimeout(() => { window.print(); }, 500);
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${title.replace(/ /g, '_')}_${new Date().getTime()}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF", error);
+      alert("Une erreur est survenue lors de la création du PDF.");
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -1038,9 +1027,18 @@ export default function FinanceManager({
                   onClick={() => {
                     handlePrintDoc("school-receipt-print-area", isPaid ? "Quittance de Paiement" : "Facture");
                   }}
-                  className="px-4 py-1.5 rounded-lg text-xs text-white bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-1.5 transition shadow cursor-pointer font-sans"
+                  disabled={isExportingPDF}
+                  className={`px-4 py-1.5 rounded-lg text-xs text-white bg-emerald-600 hover:bg-emerald-700 font-bold flex items-center gap-1.5 transition shadow font-sans ${isExportingPDF ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <Printer className="h-3.5 w-3.5" /> Télécharger / Imprimer PDF
+                  {isExportingPDF ? (
+                    <>
+                      <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Génération...
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="h-3.5 w-3.5" /> Télécharger / Imprimer PDF
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -1128,9 +1126,19 @@ export default function FinanceManager({
                     onClick={() => {
                       handlePrintDoc("school-report-print-area", "Releve_Financier");
                     }}
-                    className="w-full py-2.5 rounded-xl text-xs text-white bg-indigo-600 hover:bg-indigo-700 font-extrabold flex items-center justify-center gap-2 transition hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-md"
+                    disabled={isExportingPDF}
+                    className={`w-full py-2.5 rounded-xl text-xs text-white bg-indigo-600 hover:bg-indigo-700 font-extrabold flex items-center justify-center gap-2 transition shadow-md ${isExportingPDF ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'}`}
                   >
-                    <Printer className="h-4 w-4" /> Exporter en document PDF
+                    {isExportingPDF ? (
+                      <>
+                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Génération en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Printer className="h-4 w-4" /> Exporter en document PDF
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"

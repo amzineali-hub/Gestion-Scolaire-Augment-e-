@@ -3,24 +3,30 @@ import { auth, db } from './firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
+export type UserRole = 'admin' | 'enseignant' | 'secretariat';
+
 interface AuthContextType {
   currentUser: any | null;
   schoolId: string | null;
   schoolName: string;
+  userRole: UserRole | null;
   loading: boolean;
   demoExpired: boolean;
   loginAsGuest: () => void;
   logout: () => Promise<void>;
+  hasRole: (roles: UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   schoolId: null,
   schoolName: "Gestion Scolaire Augmentée",
+  userRole: null,
   loading: true,
   demoExpired: false,
   loginAsGuest: () => {},
   logout: async () => {},
+  hasRole: () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -29,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [schoolId, setSchoolId] = useState<string | null>(null);
   const [schoolName, setSchoolName] = useState<string>("Gestion Scolaire Augmentée");
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [demoExpired, setDemoExpired] = useState<boolean>(false);
 
@@ -63,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (userDoc.exists()) {
             const uData = userDoc.data();
             setSchoolId(uData.schoolId);
+            setUserRole((uData.role as UserRole) || 'admin');
             
             const schoolDoc = await getDoc(doc(db, 'schools', uData.schoolId));
             if (schoolDoc.exists()) {
@@ -91,10 +99,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           setSchoolId("school-demo");
           setSchoolName("Groupe Scolaire Excellence (Démo)");
+          setUserRole("admin");
         } else {
           // Show the Auth screen
           setCurrentUser(null);
           setSchoolId(null);
+          setUserRole(null);
         }
       }
       
@@ -125,11 +135,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setCurrentUser(null);
     setSchoolId(null);
+    setUserRole(null);
     setSchoolName("Gestion Scolaire Augmentée");
   };
 
+  const hasRole = (roles: UserRole[]) => {
+    if (!userRole) return false;
+    return roles.includes(userRole);
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, schoolId, schoolName, loading, demoExpired, loginAsGuest, logout }}>
+    <AuthContext.Provider value={{ currentUser, schoolId, schoolName, userRole, loading, demoExpired, loginAsGuest, logout, hasRole }}>
         {children}
     </AuthContext.Provider>
   );

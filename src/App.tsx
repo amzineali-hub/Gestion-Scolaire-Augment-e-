@@ -31,6 +31,7 @@ import AttendanceManager from "./components/AttendanceManager";
 import { translations } from "./translations";
 import { useAuth } from "./AuthContext";
 import { useFirebaseData } from "./hooks/useFirebaseData";
+import { RoleGuard } from "./components/RoleGuard";
 import Auth from "./components/Auth";
 import SchoolSetupCard from "./components/SchoolSetupCard";
 import { auth, db } from "./firebase";
@@ -999,111 +1000,127 @@ export default function App() {
           )}
 
           {activeTab === "students" && (
-            <StudentManager 
-              students={students} 
-              classes={classes} 
-              onAddStudent={actions.addStudent}
-              onEditStudent={actions.updateStudent}
-              onDeleteStudent={actions.deleteStudent}
-              subjects={subjects}
-              schoolName={schoolName}
-              schoolLogo={schoolLogo}
-              contactPhone={contactPhone}
-              contactEmail={contactEmail}
-              schoolCity={schoolCity}
-              regionalAcademy={regionalAcademy}
-              initialSearchQuery={studentSearchPreset}
-            />
+            <RoleGuard allowedRoles={['admin', 'secretariat']}>
+              <StudentManager 
+                students={students} 
+                classes={classes} 
+                onAddStudent={actions.addStudent}
+                onEditStudent={actions.updateStudent}
+                onDeleteStudent={actions.deleteStudent}
+                subjects={subjects}
+                schoolName={schoolName}
+                schoolLogo={schoolLogo}
+                contactPhone={contactPhone}
+                contactEmail={contactEmail}
+                schoolCity={schoolCity}
+                regionalAcademy={regionalAcademy}
+                initialSearchQuery={studentSearchPreset}
+              />
+            </RoleGuard>
           )}
 
           {activeTab === "teachers" && (
-            <TeacherManager 
-              teachers={teachers} 
-              subjects={subjects} 
-              classes={classes} 
-              onAddTeacher={actions.addTeacher}
-              onEditTeacher={actions.updateTeacher}
-              onDeleteTeacher={actions.deleteTeacher}
-              initialSearchQuery={teacherSearchPreset}
-            />
+            <RoleGuard allowedRoles={['admin', 'secretariat']}>
+              <TeacherManager 
+                teachers={teachers} 
+                subjects={subjects} 
+                classes={classes} 
+                onAddTeacher={actions.addTeacher}
+                onEditTeacher={actions.updateTeacher}
+                onDeleteTeacher={actions.deleteTeacher}
+                initialSearchQuery={teacherSearchPreset}
+              />
+            </RoleGuard>
           )}
 
           {activeTab === "classes" && (
-            <ClassCourseManager 
-              classes={classes}
-              subjects={subjects}
-              onAddClass={actions.addClass}
-              onEditClass={actions.updateClass}
-              onDeleteClass={actions.deleteClass}
-              onAddSubject={actions.addSubject}
-              onEditSubject={actions.updateSubject}
-              onDeleteSubject={actions.deleteSubject}
-              initialSearchQuery={classSearchPreset}
-            />
+            <RoleGuard allowedRoles={['admin', 'secretariat']}>
+              <ClassCourseManager 
+                classes={classes}
+                subjects={subjects}
+                onAddClass={actions.addClass}
+                onEditClass={actions.updateClass}
+                onDeleteClass={actions.deleteClass}
+                onAddSubject={actions.addSubject}
+                onEditSubject={actions.updateSubject}
+                onDeleteSubject={actions.deleteSubject}
+                initialSearchQuery={classSearchPreset}
+              />
+            </RoleGuard>
           )}
 
           {activeTab === "schedules" && (
-            <SchedulePlanner 
-              schedules={schedules}
-              classes={classes}
-              teachers={teachers}
-              subjects={subjects}
-              onAddSchedule={actions.addSchedule}
-              onDeleteSchedule={actions.deleteSchedule}
-            />
+            <RoleGuard allowedRoles={['admin', 'secretariat', 'enseignant']}>
+              <SchedulePlanner 
+                schedules={schedules}
+                classes={classes}
+                teachers={teachers}
+                subjects={subjects}
+                onAddSchedule={actions.addSchedule}
+                onDeleteSchedule={actions.deleteSchedule}
+              />
+            </RoleGuard>
           )}
 
           {activeTab === "financials" && (
-            <FinanceManager 
-              invoices={invoices}
-              students={students}
-              classes={classes}
-              onAddInvoices={actions.addInvoices}
-              onPayInvoice={actions.payInvoice}
-              schoolName={schoolName}
-              schoolLogo={schoolLogo}
-              contactPhone={contactPhone}
-              contactEmail={contactEmail}
-            />
+            <RoleGuard allowedRoles={['admin', 'secretariat']}>
+              <FinanceManager 
+                invoices={invoices}
+                students={students}
+                classes={classes}
+                onAddInvoices={actions.addInvoices}
+                onPayInvoice={actions.payInvoice}
+                schoolName={schoolName}
+                schoolLogo={schoolLogo}
+                contactPhone={contactPhone}
+                contactEmail={contactEmail}
+              />
+            </RoleGuard>
           )}
 
           {activeTab === "attendance" && (
-            <AttendanceManager 
-              students={students}
-              classes={classes}
-              attendance={attendance || []}
-              schoolName={schoolName}
-              actions={actions}
-            />
+            <RoleGuard allowedRoles={['admin', 'secretariat', 'enseignant']}>
+              <AttendanceManager 
+                students={students}
+                classes={classes}
+                attendance={attendance || []}
+                schoolName={schoolName}
+                actions={actions}
+              />
+            </RoleGuard>
           )}
 
           {activeTab === "communicator" && (
-            <Communicator 
-              students={students}
-              classes={classes}
-              schoolName={schoolName}
-            />
+            <RoleGuard allowedRoles={['admin', 'secretariat']}>
+              <Communicator 
+                students={students}
+                classes={classes}
+                schoolName={schoolName}
+              />
+            </RoleGuard>
           )}
 
           {activeTab === "settings" && (
-            <SettingsManager 
-              schoolId={schoolId}
-              schoolName={schoolName}
-              setSchoolName={setSchoolName}
-              schoolCity={schoolCity}
-              setSchoolCity={setSchoolCity}
-              regionalAcademy={regionalAcademy}
-              setRegionalAcademy={setRegionalAcademy}
-              bilingualType={bilingualType}
-              setBilingualType={setBilingualType}
-              contactPhone={contactPhone}
-              setContactPhone={setContactPhone}
-              contactEmail={contactEmail}
-              setContactEmail={setContactEmail}
-              schoolLogo={schoolLogo}
-              setSchoolLogo={setSchoolLogo}
-              onResetData={handleResetData}
-            />
+            <RoleGuard allowedRoles={['admin']}>
+              <SettingsManager 
+                schoolId={schoolId}
+                schoolName={schoolName}
+                setSchoolName={setSchoolName}
+                schoolCity={schoolCity}
+                setSchoolCity={setSchoolCity}
+                regionalAcademy={regionalAcademy}
+                setRegionalAcademy={setRegionalAcademy}
+                bilingualType={bilingualType}
+                setBilingualType={setBilingualType}
+                contactPhone={contactPhone}
+                setContactPhone={setContactPhone}
+                contactEmail={contactEmail}
+                setContactEmail={setContactEmail}
+                schoolLogo={schoolLogo}
+                setSchoolLogo={setSchoolLogo}
+                onResetData={handleResetData}
+              />
+            </RoleGuard>
           )}
         </main>
 
