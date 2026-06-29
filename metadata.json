@@ -1,0 +1,6 @@
+{
+  "name": "Madrasati - Gestion Scolaire",
+  "description": "SaaS moderne de gestion pour les écoles privées au Maroc (Matières, Enseignants, Élèves, Emplois du Temps, Facturation)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

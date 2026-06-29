@@ -1,0 +1,78 @@
+{
+  "description": "Blueprint for School Management SAAS",
+  "collections": [
+    {
+      "name": "schools",
+      "description": "A school organization (the tenant)",
+      "fields": [
+        { "name": "name", "type": "string", "description": "School name" },
+        { "name": "createdAt", "type": "timestamp" },
+        { "name": "subscriptionPlan", "type": "string", "description": "e.g., micro, croissance, excellence" }
+      ],
+      "collections": [
+        {
+          "name": "students",
+          "description": "Students belonging to the school",
+          "fields": [
+            { "name": "firstName", "type": "string" },
+            { "name": "lastName", "type": "string" },
+            { "name": "cycle", "type": "string" },
+            { "name": "status", "type": "string" },
+            { "name": "createdAt", "type": "timestamp" }
+          ]
+        },
+        {
+          "name": "classes",
+          "description": "Classes belonging to the school",
+          "fields": [
+            { "name": "name", "type": "string" },
+            { "name": "cycle", "type": "string" },
+            { "name": "capacity", "type": "number" }
+          ]
+        },
+        {
+          "name": "teachers",
+          "description": "Teachers belonging to the school",
+          "fields": [
+            { "name": "firstName", "type": "string" },
+            { "name": "lastName", "type": "string" },
+            { "name": "subject", "type": "string" }
+          ]
+        },
+        {
+          "name": "invoices",
+          "description": "Invoices/Payments for students",
+          "fields": [
+            { "name": "studentId", "type": "string" },
+            { "name": "amount", "type": "number" },
+            { "name": "status", "type": "string", "description": "payé, retard, brouillon" },
+            { "name": "dueDate", "type": "timestamp" }
+          ]
+        },
+        {
+          "name": "attendance",
+          "description": "Daily attendance records scanned via QR for students",
+          "fields": [
+            { "name": "studentId", "type": "string" },
+            { "name": "studentName", "type": "string" },
+            { "name": "classId", "type": "string" },
+            { "name": "className", "type": "string" },
+            { "name": "date", "type": "string", "description": "YYYY-MM-DD formatted date" },
+            { "name": "timestamp", "type": "string", "description": "ISO timestamp" },
+            { "name": "status", "type": "string", "description": "présent, absent, en retard" },
+            { "name": "recordedBy", "type": "string" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "users",
+      "description": "System users (admins/staff for a school)",
+      "fields": [
+        { "name": "email", "type": "string" },
+        { "name": "role", "type": "string", "description": "admin, teacher, staff" },
+        { "name": "schoolId", "type": "string", "description": "Reference to the school Document ID (tenant isolation)" }
+      ]
+    }
+  ]
+}
