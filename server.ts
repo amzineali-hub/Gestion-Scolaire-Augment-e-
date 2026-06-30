@@ -87,9 +87,15 @@ async function startServer() {
 
   // WhatsApp Route (using Meta WhatsApp Cloud API)
   app.post("/api/whatsapp/send", async (req, res) => {
-    const { to, message } = req.body;
-    
     try {
+      const { to, message } = req.body;
+      
+      console.log(`[WhatsApp] Sending message to ${to}`);
+      
+      if (!to) {
+        throw new Error("Phone number is required");
+      }
+      
       const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
       const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
       
@@ -99,7 +105,9 @@ async function startServer() {
       
       const formattedTo = to.replace(/^\+/, ''); // WhatsApp API requires number without +
       
-      const response = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/messages`, {
+      console.log(`[WhatsApp] Calling Meta API for ${formattedTo}...`);
+      
+      const response = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -113,7 +121,16 @@ async function startServer() {
         })
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log(`[WhatsApp] Meta API response status: ${response.status}`);
+      console.log(`[WhatsApp] Meta API response body:`, responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Failed to parse Meta API response: ${responseText}`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error?.message || "Error sending WhatsApp message");
@@ -121,6 +138,7 @@ async function startServer() {
 
       res.json({ success: true, messageId: data.messages?.[0]?.id });
     } catch (error: any) {
+      console.error("[WhatsApp] Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
