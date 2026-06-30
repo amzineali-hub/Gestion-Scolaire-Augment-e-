@@ -2,7 +2,6 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import nodemailer from "nodemailer";
-import twilio from "twilio";
 import PDFDocument from "pdfkit";
 
 async function startServer() {
@@ -37,7 +36,7 @@ async function startServer() {
       message: "Server is running on Google Cloud Run",
       smtpOk,
       smtpError,
-      envKeys: Object.keys(process.env).filter(k => k.includes('SMTP') || k.includes('SMT') || k.includes('TWILIO'))
+      envKeys: Object.keys(process.env).filter(k => k.includes('SMTP') || k.includes('SMT') || k.includes('WHATSAPP'))
     });
   });
 
@@ -86,28 +85,41 @@ async function startServer() {
     }
   });
 
-  // WhatsApp Route (using Twilio)
+  // WhatsApp Route (using Meta WhatsApp Cloud API)
   app.post("/api/whatsapp/send", async (req, res) => {
     const { to, message } = req.body;
     
     try {
-      const accountSid = process.env.TWILIO_ACCOUNT_SID;
-      const authToken = process.env.TWILIO_AUTH_TOKEN;
-      const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+      const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
       
-      if (!accountSid || !authToken) {
-         throw new Error("Twilio credentials missing in environment variables.");
+      if (!accessToken || !phoneNumberId) {
+         throw new Error("WhatsApp credentials missing in environment variables.");
       }
       
-      const client = twilio(accountSid, authToken);
+      const formattedTo = to.replace(/^\+/, ''); // WhatsApp API requires number without +
       
-      const response = await client.messages.create({
-        body: message,
-        from: `whatsapp:${twilioPhone}`,
-        to: `whatsapp:${to}`
+      const response = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: formattedTo,
+          type: "text",
+          text: { body: message }
+        })
       });
 
-      res.json({ success: true, messageSid: response.sid });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Error sending WhatsApp message");
+      }
+
+      res.json({ success: true, messageId: data.messages?.[0]?.id });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }

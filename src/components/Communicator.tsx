@@ -301,7 +301,7 @@ export default function Communicator({ students, classes, schoolName }: Communic
       
       const data = await response.json();
       if (data.success) {
-         setSendResult({ type: 'whatsapp', success: true, message: 'Message WhatsApp envoyé avec succès (Twilio) !'});
+         setSendResult({ type: 'whatsapp', success: true, message: 'Message WhatsApp envoyé avec succès !'});
       } else {
          setSendResult({ type: 'whatsapp', success: false, message: 'Erreur: ' + data.error});
       }
