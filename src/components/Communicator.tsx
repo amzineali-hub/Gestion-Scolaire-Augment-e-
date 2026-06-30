@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Student, Class } from "../types";
 import { 
   Send, 
@@ -15,7 +15,9 @@ import {
   Sparkles,
   Award,
   AlertTriangle,
-  Heart
+  Heart,
+  RefreshCw,
+  Clock
 } from "lucide-react";
 
 interface CommunicatorProps {
@@ -25,8 +27,10 @@ interface CommunicatorProps {
 }
 
 type TemplateCategory = "finance" | "absence" | "discipline" | "success" | "meeting" | "services" | "ai_report";
+type ViewMode = "compose" | "inbox";
 
 export default function Communicator({ students, classes, schoolName }: CommunicatorProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>("compose");
   const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || "");
   const [category, setCategory] = useState<TemplateCategory>("success");
   const [copied, setCopied] = useState(false);
@@ -37,6 +41,79 @@ export default function Communicator({ students, classes, schoolName }: Communic
   const [testScore, setTestScore] = useState("18/20");
   const [testSubject, setTestSubject] = useState("Mathématiques");
   const [eventDate, setEventDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // Messages state
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [selectedChatPhone, setSelectedChatPhone] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [botStatusMap, setBotStatusMap] = useState<Record<string, boolean>>({});
+
+  const fetchBotStatus = async () => {
+    try {
+      const r = await fetch('/api/whatsapp/bot-status');
+      const data = await r.json();
+      setBotStatusMap(data.botStatus || {});
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchMessages = async () => {
+    setLoadingMessages(true);
+    try {
+      const r = await fetch('/api/whatsapp/messages');
+      const data = await r.json();
+      setMessages(data.messages || []);
+    } catch (e) {
+      console.error("Failed to fetch messages", e);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+    fetchBotStatus();
+    const interval = setInterval(() => {
+      fetchMessages();
+      fetchBotStatus();
+    }, 5000); // poll every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedChatPhone) return;
+    try {
+      const r = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: selectedChatPhone, message: replyText })
+      });
+      if (r.ok) {
+        setReplyText("");
+        fetchMessages();
+      }
+    } catch (e) {
+      console.error("Failed to send reply", e);
+    }
+  };
+
+  const handleToggleBot = async (phone: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    try {
+      const r = await fetch("/api/whatsapp/bot-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, enabled: newStatus })
+      });
+      if (r.ok) {
+        setBotStatusMap(prev => ({ ...prev, [phone]: newStatus }));
+      }
+    } catch (e) {
+      console.error("Failed to toggle bot", e);
+    }
+  };
 
   // Find selected student details
   const student = students.find(s => s.id === selectedStudentId);
@@ -327,15 +404,38 @@ export default function Communicator({ students, classes, schoolName }: Communic
             Générez des messages éducatifs et notices de scolarité personnalisés en français pour les parents d'élèves.
           </p>
         </div>
-        <div className="bg-teal-50 text-teal-800 border border-teal-100 rounded-lg px-3 py-1.5 text-xs font-semibold self-start sm:self-auto flex items-center gap-1.5">
-          <Heart className="h-3.5 w-3.5 text-teal-600 animate-bounce" /> Focus Communication En Ligne
+        <div className="flex items-center gap-2">
+          <div className="bg-slate-100 p-1 rounded-xl flex items-center shrink-0">
+            <button
+              onClick={() => setViewMode("compose")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === "compose"
+                  ? "bg-white text-slate-800 shadow-sm border border-slate-200"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Nouveau Message
+            </button>
+            <button
+              onClick={() => setViewMode("inbox")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                viewMode === "inbox"
+                  ? "bg-white text-slate-800 shadow-sm border border-slate-200"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Inbox WhatsApp
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Control Column (Options selector) - 5 Cols */}
-        <div className="lg:col-span-5 space-y-6">
+      {viewMode === "compose" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Left Control Column (Options selector) - 5 Cols */}
+          <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
             <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2 border-b border-slate-50 pb-3">
               <User className="h-4 w-4 text-indigo-500" />
@@ -593,8 +693,151 @@ export default function Communicator({ students, classes, schoolName }: Communic
           </div>
         </div>
 
-      </div>
-
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm min-h-[600px] flex overflow-hidden">
+          {/* Left Sidebar - Chat List */}
+          <div className="w-1/3 border-r border-slate-100 bg-slate-50/50 flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-emerald-500" />
+                Discussions
+              </h3>
+              <button 
+                onClick={fetchMessages}
+                disabled={loadingMessages}
+                className="text-slate-400 hover:text-slate-600 transition"
+                title="Actualiser"
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingMessages ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {(() => {
+                // Group messages by phone
+                const chats: Record<string, any> = {};
+                messages.forEach(m => {
+                  const phone = m.direction === 'incoming' ? m.from : m.to;
+                  if (!chats[phone] || new Date(m.timestamp) > new Date(chats[phone].timestamp)) {
+                    chats[phone] = m;
+                  }
+                });
+                
+                const chatList = Object.entries(chats).sort((a, b) => new Date(b[1].timestamp).getTime() - new Date(a[1].timestamp).getTime());
+                
+                if (chatList.length === 0) {
+                  return (
+                    <div className="p-6 text-center text-slate-500 text-xs">
+                      Aucune conversation.
+                    </div>
+                  );
+                }
+                
+                return chatList.map(([phone, lastMsg]) => (
+                  <button
+                    key={phone}
+                    onClick={() => setSelectedChatPhone(phone)}
+                    className={`w-full text-left p-4 border-b border-slate-50 hover:bg-slate-100 transition ${selectedChatPhone === phone ? 'bg-indigo-50 hover:bg-indigo-50 border-l-4 border-l-indigo-500' : 'border-l-4 border-l-transparent'}`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-slate-800 text-sm">{phone}</span>
+                      <span className="text-[10px] text-slate-400">{new Date(lastMsg.timestamp).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 truncate">
+                      {lastMsg.direction === 'outgoing' ? 'Vous: ' : ''}{lastMsg.text}
+                    </p>
+                  </button>
+                ));
+              })()}
+            </div>
+          </div>
+          
+          {/* Right Area - Chat Window */}
+          <div className="w-2/3 flex flex-col bg-white">
+            {selectedChatPhone ? (
+              <>
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white shadow-sm z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center">
+                      <User className="h-5 w-5 text-slate-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800">{selectedChatPhone}</h4>
+                      <p className="text-xs text-slate-500">Contact WhatsApp</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                    <span className="text-xs font-semibold text-slate-600">Bot Gemini</span>
+                    <button 
+                      onClick={() => handleToggleBot(selectedChatPhone, botStatusMap[selectedChatPhone] !== false)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${botStatusMap[selectedChatPhone] !== false ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${botStatusMap[selectedChatPhone] !== false ? 'translate-x-4' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
+                  {messages.filter(m => (m.direction === 'incoming' && m.from === selectedChatPhone) || (m.direction === 'outgoing' && m.to === selectedChatPhone)).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg: any, idx) => {
+                    const isIncoming = msg.direction === 'incoming';
+                    const isBot = msg.bot;
+                    
+                    return (
+                      <div key={idx} className={`flex w-full ${isIncoming ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl p-3 shadow-sm ${
+                          isIncoming 
+                            ? 'bg-white border border-slate-200 rounded-tl-sm' 
+                            : (isBot ? 'bg-emerald-50 border border-emerald-200 rounded-tr-sm' : 'bg-indigo-500 text-white border border-indigo-600 rounded-tr-sm')
+                        }`}>
+                          <div className={`text-[10px] font-medium mb-1 flex items-center gap-1 ${isIncoming ? 'text-slate-400' : (isBot ? 'text-emerald-600' : 'text-indigo-200')}`}>
+                            {isBot && <Sparkles className="h-3 w-3" />}
+                            {isBot ? 'Bot Gemini' : (isIncoming ? selectedChatPhone : 'Vous (Admin)')}
+                            <span className="mx-1">•</span>
+                            {new Date(msg.timestamp).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}
+                          </div>
+                          <p className={`text-sm whitespace-pre-wrap leading-relaxed ${isIncoming ? 'text-slate-800' : (isBot ? 'text-emerald-900' : 'text-white')}`}>{msg.text}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                <div className="p-4 border-t border-slate-100 bg-white">
+                  <div className="flex items-end gap-2">
+                    <textarea 
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Tapez votre message ici pour répondre manuellement..."
+                      className="flex-1 resize-none border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[60px]"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendReply();
+                        }
+                      }}
+                    />
+                    <button 
+                      onClick={handleSendReply}
+                      disabled={!replyText.trim()}
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white p-3 rounded-xl transition"
+                    >
+                      <Send className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2 text-center">
+                    En envoyant un message manuellement, vous pouvez choisir de désactiver le Bot Gemini ci-dessus pour prendre le relais.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                <MessageSquare className="h-12 w-12 text-slate-200 mb-4" />
+                <p>Sélectionnez une conversation pour afficher les messages</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

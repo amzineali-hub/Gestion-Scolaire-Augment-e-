@@ -1,11 +1,25 @@
 import express from "express";
 import nodemailer from "nodemailer";
 import PDFDocument from "pdfkit";
+import { GoogleGenAI } from "@google/genai";
 
 const app = express();
 
 // Middleware for parsing JSON requests
 app.use(express.json({limit: '50mb'}));
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY || "",
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
+
+// In-memory store for WhatsApp messages (for prototype purposes)
+export const incomingMessages: any[] = [];
+export const botStatus: Record<string, boolean> = {}; // Tracks if bot is enabled per phone number
 
 // API Routes
 app.get("/api/health", async (req, res) => {
@@ -131,11 +145,34 @@ app.post("/api/whatsapp/send", async (req, res) => {
       throw new Error(data.error?.message || "Error sending WhatsApp message");
     }
 
+    // Store outgoing message
+    incomingMessages.push({
+      id: data.messages?.[0]?.id || `out_${Date.now()}`,
+      to: formattedTo,
+      text: message,
+      timestamp: new Date().toISOString(),
+      direction: 'outgoing',
+      bot: false
+    });
+
     res.json({ success: true, messageId: data.messages?.[0]?.id });
   } catch (error: any) {
     console.error("[WhatsApp] Error:", error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// Toggle bot status per number
+app.post("/api/whatsapp/bot-status", (req, res) => {
+  const { phone, enabled } = req.body;
+  if (phone) {
+    botStatus[phone] = enabled;
+  }
+  res.json({ success: true, botStatus });
+});
+
+app.get("/api/whatsapp/bot-status", (req, res) => {
+  res.json({ botStatus });
 });
 
 // WhatsApp Webhook Verification Route (GET)
@@ -153,7 +190,7 @@ app.get("/api/whatsapp/webhook", (req, res) => {
     if (mode === "subscribe" && token === verify_token) {
       // Respond with 200 OK and challenge token from the request
       console.log("WEBHOOK_VERIFIED");
-      res.status(200).send(challenge);
+      res.status(200).type('text/plain').send(challenge);
     } else {
       // Responds with '403 Forbidden' if verify tokens do not match
       res.sendStatus(403);
@@ -164,7 +201,7 @@ app.get("/api/whatsapp/webhook", (req, res) => {
 });
 
 // WhatsApp Webhook Event Route (POST)
-app.post("/api/whatsapp/webhook", (req, res) => {
+app.post("/api/whatsapp/webhook", async (req, res) => {
   const body = req.body;
 
   // Check the Incoming webhook message
@@ -183,8 +220,78 @@ app.post("/api/whatsapp/webhook", (req, res) => {
         body.entry[0].changes[0].value.metadata.phone_number_id;
       let from = body.entry[0].changes[0].value.messages[0].from; // extract the phone number from the webhook payload
       let msg_body = body.entry[0].changes[0].value.messages[0].text.body; // extract the message text from the webhook payload
-
+      let msg_id = body.entry[0].changes[0].value.messages[0].id;
+      
       console.log(`[WhatsApp Webhook] Received message from ${from}: ${msg_body}`);
+
+      // Store the incoming message
+      incomingMessages.push({
+        id: msg_id,
+        from,
+        text: msg_body,
+        timestamp: new Date().toISOString(),
+        direction: 'incoming'
+      });
+
+      // Auto-reply using Gemini (if bot is enabled for this number)
+      const isBotEnabled = botStatus[from] !== false; // Default to true if not explicitly set to false
+
+      try {
+        if (isBotEnabled && process.env.GEMINI_API_KEY) {
+          console.log(`[Gemini] Generating reply for message: "${msg_body}"`);
+          const response = await ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: msg_body,
+            config: {
+              systemInstruction: "Tu es un assistant virtuel utile et amical pour une application de gestion scolaire. Réponds brièvement et clairement au message de l'utilisateur.",
+            }
+          });
+          
+          const replyText = response.text;
+          console.log(`[Gemini] Reply: "${replyText}"`);
+
+          // Send the reply via Meta API
+          const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+          
+          if (accessToken && phone_number_id) {
+            const metaResponse = await fetch(`https://graph.facebook.com/v20.0/${phone_number_id}/messages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: from,
+                type: "text",
+                text: { body: replyText }
+              })
+            });
+
+            if (metaResponse.ok) {
+               console.log(`[WhatsApp] Auto-reply sent successfully to ${from}`);
+               // Store the outgoing message
+               incomingMessages.push({
+                 id: `out_${Date.now()}`,
+                 to: from,
+                 text: replyText,
+                 timestamp: new Date().toISOString(),
+                 direction: 'outgoing',
+                 bot: true
+               });
+            } else {
+               const errText = await metaResponse.text();
+               console.error(`[WhatsApp] Failed to send auto-reply: ${errText}`);
+            }
+          } else {
+            console.warn("[WhatsApp] Cannot send auto-reply, missing WHATSAPP_ACCESS_TOKEN or phone_number_id.");
+          }
+        } else {
+           console.warn("[Gemini] GEMINI_API_KEY is missing. Cannot generate auto-reply.");
+        }
+      } catch (error) {
+        console.error("[Gemini/WhatsApp] Error in auto-reply flow:", error);
+      }
     }
     
     // Returns a '200 OK' response to all requests
@@ -193,6 +300,11 @@ app.post("/api/whatsapp/webhook", (req, res) => {
     // Return a '404 Not Found' if event is not from a WhatsApp API
     res.sendStatus(404);
   }
+});
+
+// GET route to fetch all stored WhatsApp messages
+app.get("/api/whatsapp/messages", (req, res) => {
+  res.json({ messages: incomingMessages });
 });
 
 // PDF Generation Route
