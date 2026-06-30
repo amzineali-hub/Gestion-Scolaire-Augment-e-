@@ -138,6 +138,63 @@ app.post("/api/whatsapp/send", async (req, res) => {
   }
 });
 
+// WhatsApp Webhook Verification Route (GET)
+app.get("/api/whatsapp/webhook", (req, res) => {
+  const verify_token = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "my_secure_verify_token_123";
+
+  // Parse params from the webhook verification request
+  let mode = req.query["hub.mode"];
+  let token = req.query["hub.verify_token"];
+  let challenge = req.query["hub.challenge"];
+
+  // Check if a token and mode were sent
+  if (mode && token) {
+    // Check the mode and token sent are correct
+    if (mode === "subscribe" && token === verify_token) {
+      // Respond with 200 OK and challenge token from the request
+      console.log("WEBHOOK_VERIFIED");
+      res.status(200).send(challenge);
+    } else {
+      // Responds with '403 Forbidden' if verify tokens do not match
+      res.sendStatus(403);
+    }
+  } else {
+    res.sendStatus(400);
+  }
+});
+
+// WhatsApp Webhook Event Route (POST)
+app.post("/api/whatsapp/webhook", (req, res) => {
+  const body = req.body;
+
+  // Check the Incoming webhook message
+  console.log(JSON.stringify(req.body, null, 2));
+
+  // Verify this is from WhatsApp
+  if (body.object) {
+    if (
+      body.entry &&
+      body.entry[0].changes &&
+      body.entry[0].changes[0] &&
+      body.entry[0].changes[0].value.messages &&
+      body.entry[0].changes[0].value.messages[0]
+    ) {
+      let phone_number_id =
+        body.entry[0].changes[0].value.metadata.phone_number_id;
+      let from = body.entry[0].changes[0].value.messages[0].from; // extract the phone number from the webhook payload
+      let msg_body = body.entry[0].changes[0].value.messages[0].text.body; // extract the message text from the webhook payload
+
+      console.log(`[WhatsApp Webhook] Received message from ${from}: ${msg_body}`);
+    }
+    
+    // Returns a '200 OK' response to all requests
+    res.sendStatus(200);
+  } else {
+    // Return a '404 Not Found' if event is not from a WhatsApp API
+    res.sendStatus(404);
+  }
+});
+
 // PDF Generation Route
 app.post("/api/pdf/generate", (req, res) => {
   const { title, content } = req.body;
