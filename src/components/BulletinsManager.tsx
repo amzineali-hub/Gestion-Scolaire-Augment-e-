@@ -75,7 +75,7 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
     setGradeRecords(prev => prev.map(rec => rec.id === id ? { ...rec, [field]: numValue > 20 ? 20 : (numValue < 0 ? 0 : numValue) } : rec));
   };
 
-  const handleSendBulletinEmail = async () => {
+  const handleSendBulletinEmail = async (elementId: string) => {
     if (!selectedStudentForBulletin || !selectedStudentForBulletin.parentEmail) {
        setEmailResult({ success: false, message: 'Email du parent manquant.' });
        setTimeout(() => setEmailResult(null), 3000);
@@ -86,18 +86,37 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
     setEmailResult(null);
 
     try {
+      const el = document.getElementById(elementId);
+      let pdfBase64 = "";
+      if (el) {
+        const canvas = await html2canvas(el, { 
+          scale: 2, 
+          useCORS: true,
+          backgroundColor: '#ffffff'
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        pdfBase64 = pdf.output('datauristring').split(',')[1];
+      }
+
       const response = await fetch('/api/email/send-bulletin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: selectedStudentForBulletin.parentEmail,
+          phone: selectedStudentForBulletin.parentPhone,
           studentName: `${selectedStudentForBulletin.firstName} ${selectedStudentForBulletin.lastName}`,
           term: bulletinSemester,
           academicYear: bulletinAcademicYear,
           grades: gradeRecords.map(rec => ({
              subject: rec.name,
              value: ((rec.cc + rec.exam) / 2).toFixed(2)
-          }))
+          })),
+          pdfAttachmentBase64: pdfBase64
         })
       });
       
@@ -369,7 +388,7 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
                    )}
                    <button
                      type="button"
-                     onClick={handleSendBulletinEmail}
+                     onClick={() => handleSendBulletinEmail('bulletin-preview-content')}
                      disabled={isSendingEmail || isExportingPDF}
                      className={`w-full py-2.5 rounded-xl text-xs text-white bg-indigo-600 hover:bg-indigo-700 font-extrabold flex items-center justify-center gap-2 transition shadow-md mb-2 ${isSendingEmail ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
                    >

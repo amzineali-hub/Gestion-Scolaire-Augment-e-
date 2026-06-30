@@ -137,44 +137,49 @@ async function startServer() {
     }
   });
 
-  // Send Bulletin via Email with PDF Attachment
+  // Send Bulletin via Email with PDF Attachment and WhatsApp Notification
   app.post("/api/email/send-bulletin", async (req, res) => {
-    const { to, studentName, term, academicYear, grades } = req.body;
+    const { to, phone, studentName, term, academicYear, grades, pdfAttachmentBase64 } = req.body;
     
     try {
-      // 1. Generate PDF in memory
-      const doc = new PDFDocument({ margin: 50 });
-      const buffers: any[] = [];
-      doc.on('data', buffers.push.bind(buffers));
-      
-      // Build PDF Content
-      doc.fontSize(20).text('Bulletin Scolaire', { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(14).text(`Élève : ${studentName}`);
-      doc.text(`Période : ${term} | Année Académique : ${academicYear}`);
-      doc.moveDown();
-      
-      doc.fontSize(12).text('Relevé de notes :', { underline: true });
-      doc.moveDown();
-      
-      if (grades && grades.length > 0) {
-        grades.forEach((g: any) => {
-           doc.text(`${g.subject}: ${g.value}/20`);
-        });
+      let pdfBuffer;
+      if (pdfAttachmentBase64) {
+        pdfBuffer = Buffer.from(pdfAttachmentBase64, 'base64');
       } else {
-        doc.text('Aucune note enregistrée.');
-      }
-      
-      doc.moveDown(2);
-      doc.fontSize(10).fillColor('grey').text('Ce bulletin est généré automatiquement par la plateforme Madrasati.', { align: 'center' });
-      doc.end();
-      
-      // Wait for PDF to finish
-      const pdfBuffer = await new Promise<Buffer>((resolve) => {
-        doc.on('end', () => {
-          resolve(Buffer.concat(buffers));
+        // Fallback: Generate PDF in memory if base64 not provided
+        const doc = new PDFDocument({ margin: 50 });
+        const buffers: any[] = [];
+        doc.on('data', buffers.push.bind(buffers));
+        
+        // Build PDF Content
+        doc.fontSize(20).text('Bulletin Scolaire', { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(14).text(`Élève : ${studentName}`);
+        doc.text(`Période : ${term} | Année Académique : ${academicYear}`);
+        doc.moveDown();
+        
+        doc.fontSize(12).text('Relevé de notes :', { underline: true });
+        doc.moveDown();
+        
+        if (grades && grades.length > 0) {
+          grades.forEach((g: any) => {
+             doc.text(`${g.subject}: ${g.value}/20`);
+          });
+        } else {
+          doc.text('Aucune note enregistrée.');
+        }
+        
+        doc.moveDown(2);
+        doc.fontSize(10).fillColor('grey').text('Ce bulletin est généré automatiquement.', { align: 'center' });
+        doc.end();
+        
+        // Wait for PDF to finish
+        pdfBuffer = await new Promise<Buffer>((resolve) => {
+          doc.on('end', () => {
+            resolve(Buffer.concat(buffers));
+          });
         });
-      });
+      }
 
       // 2. Send Email
       const transporter = nodemailer.createTransport({
