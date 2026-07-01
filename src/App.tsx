@@ -821,15 +821,15 @@ export default function App() {
         {/* SIDEBAR NAVIGATION */}
         <nav className={`
           print:hidden
-          fixed lg:sticky top-20 h-[calc(100vh-5rem)] z-50 bg-white
-          w-64 max-w-[85vw] p-4 flex flex-col justify-between
+          fixed lg:sticky top-14 lg:top-20 h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-5rem)] z-50 bg-white
+          w-64 max-w-[85vw] p-4 flex flex-col justify-between overflow-y-auto
           transition-transform duration-300 ease-in-out shrink-0 shadow-2xl lg:shadow-none
           ${lang === "ar" 
             ? `right-0 border-l border-slate-150 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"}` 
             : `left-0 border-r border-slate-150 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`
           }
         `}>
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <span className="text-[10px] font-bold text-black uppercase tracking-widest block px-3 font-display">
               {t("main_menu")}
             </span>
@@ -994,7 +994,7 @@ export default function App() {
           </div>
 
           {/* Quick legal Footer in navigation rail */}
-          <div className="space-y-3 mt-4">
+          <div className="space-y-3 mt-auto pt-4">
             {/* Lang & Logout visible ONLY on mobile/tablets (hidden lg:) */}
             <div className="flex flex-col gap-2 lg:hidden border-t border-slate-150 pt-3">
               
