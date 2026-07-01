@@ -207,27 +207,35 @@ export default function Dashboard({
     setChatMessages(prev => [...prev, { sender: "user", text: userMsgText, time: timeNow }]);
     setUserInput("");
 
-    // Simulate auto-reply from Madrasati Assistant
-    setTimeout(() => {
-      let replyText = "Je suis l'assistant dynamique Madrasati. Je peux vous guider ! Essayez de me poser des questions sur l'appel QR, les élèves ou la facturation.";
-      const textLower = userMsgText.toLowerCase();
-
-      if (textLower.includes("élève") || textLower.includes("apprenant") || textLower.includes("ajouter") || textLower.includes("inscrire")) {
-        replyText = "Pour ajouter ou inscrire un nouvel apprenant, utilisez le gros bouton bleu '+ Ajouter un nouvel Apprenant' en haut du tableau de bord ou l'onglet 'Élèves' dans le menu latéral. C'est instantané !";
-      } else if (textLower.includes("badge") || textLower.includes("qr") || textLower.includes("code") || textLower.includes("appel") || textLower.includes("présence")) {
-        replyText = "L'appel s'effectue via l'onglet 'Présences & Badges QR'. Vous pouvez générer les badges QR des élèves, puis utiliser la caméra de votre téléphone ou PC pour scanner leur badge en direct lors de l'entrée ou de la sortie !";
-      } else if (textLower.includes("facture") || textLower.includes("argent") || textLower.includes("paye") || textLower.includes("recouvrement") || textLower.includes("finance")) {
-        replyText = `L'onglet 'Finances & Recouvrement' vous permet d'éditer des factures pour les frais de scolarité, d'enregistrer des encaissements, et de surveiller votre santé financière. Le taux de recouvrement actuel est de ${collectionRate}%.`;
-      } else if (textLower.includes("prof") || textLower.includes("enseignant") || textLower.includes("teacher")) {
-        replyText = "Vous pouvez gérer la liste des enseignants et affecter leurs matières favorites dans l'onglet 'Enseignants' du menu latéral.";
-      } else if (textLower.includes("bonjour") || textLower.includes("salut") || textLower.includes("hello")) {
-        replyText = `Bonjour ! Ravi de vous assister aujourd'hui, Mme/M. ${adminName} ! Que souhaitez-vous configurer ou vérifier sur votre portail d'école ?`;
-      } else if (textLower.includes("médicament") || textLower.includes("malade") || textLower.includes("santé")) {
-        replyText = "Chaque fiche de l'élève comporte des sections sécurisées pour renseigner tout antécédent médical ou traitement d'urgence.";
+    // Simulate auto-reply from Madrasati Assistant via Gemini API
+    const fetchReply = async () => {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: userMsgText }),
+        });
+        
+        const data = await response.json();
+        
+        setChatMessages(prev => [...prev, { 
+          sender: "bot", 
+          text: data.reply, 
+          time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) 
+        }]);
+      } catch (error) {
+        console.error("Chat error:", error);
+        setChatMessages(prev => [...prev, { 
+          sender: "bot", 
+          text: "Je suis désolé, je n'arrive pas à me connecter pour le moment.", 
+          time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) 
+        }]);
       }
-
-      setChatMessages(prev => [...prev, { sender: "bot", text: replyText, time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) }]);
-    }, 700);
+    };
+    
+    fetchReply();
   };
 
   // Ticking Moroccan time

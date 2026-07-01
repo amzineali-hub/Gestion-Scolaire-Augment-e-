@@ -44,6 +44,7 @@ interface StudentManagerProps {
   schoolCity?: string;
   regionalAcademy?: string;
   initialSearchQuery?: string;
+  isLoading?: boolean;
 }
 
 export default function StudentManager({
@@ -59,7 +60,8 @@ export default function StudentManager({
   contactEmail,
   schoolCity,
   regionalAcademy,
-  initialSearchQuery = ""
+  initialSearchQuery = "",
+  isLoading = false
 }: StudentManagerProps) {
   // Filters and search states
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
@@ -169,6 +171,7 @@ export default function StudentManager({
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [formError, setFormError] = useState("");
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
   // Bulletin / Report Card states
@@ -399,9 +402,30 @@ export default function StudentManager({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
     if (!firstName || !lastName || !classId || !parentName) {
-      alert("Veuillez remplir tous les champs obligatoires (*)");
+      setFormError("Veuillez remplir tous les champs obligatoires (*)");
       return;
+    }
+
+    // Validation for Moroccan phone numbers (10 digits, starts with 06 or 07)
+    if (parentPhone) {
+      const cleanPhone = parentPhone.replace(/\s+/g, '');
+      const phoneRegex = /^(06|07)\d{8}$/;
+      if (!phoneRegex.test(cleanPhone)) {
+        setFormError("Le numéro de téléphone marocain doit contenir 10 chiffres et commencer par 06 ou 07.");
+        return;
+      }
+    }
+
+    // Validation for Email
+    if (parentEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(parentEmail)) {
+        setFormError("L'adresse email saisie n'est pas valide.");
+        return;
+      }
     }
 
     const payload = {
@@ -629,7 +653,47 @@ export default function StudentManager({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedStudents.map(student => {
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`skeleton-${i}`} className="animate-pulse">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-slate-200"></div>
+                          <div className="space-y-2">
+                            <div className="h-3 bg-slate-200 rounded w-24"></div>
+                            <div className="h-2 bg-slate-200 rounded w-16"></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-slate-200 rounded w-20"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="space-y-2">
+                          <div className="h-3 bg-slate-200 rounded w-28"></div>
+                          <div className="h-2 bg-slate-200 rounded w-20"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="space-y-2">
+                          <div className="h-3 bg-slate-200 rounded w-16"></div>
+                          <div className="h-2 bg-slate-200 rounded w-24"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-6 bg-slate-200 rounded-full w-16"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-7 h-7 bg-slate-200 rounded-lg"></div>
+                          <div className="w-7 h-7 bg-slate-200 rounded-lg"></div>
+                          <div className="w-7 h-7 bg-slate-200 rounded-lg"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  paginatedStudents.map(student => {
                   const assignedClass = classes.find(c => c.id === student.classId);
                   return (
                     <tr key={student.id} className="hover:bg-slate-50/50 transition">
@@ -796,7 +860,7 @@ export default function StudentManager({
                       </td>
                     </tr>
                   );
-                })}
+                }))}
               </tbody>
             </table>
           </div>
@@ -881,6 +945,11 @@ export default function StudentManager({
 
             {/* Modal Form */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {formError && (
+                <div className="bg-rose-50 text-rose-700 p-3 rounded-lg border border-rose-200 text-sm font-medium">
+                  {formError}
+                </div>
+              )}
               {/* Personal Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>

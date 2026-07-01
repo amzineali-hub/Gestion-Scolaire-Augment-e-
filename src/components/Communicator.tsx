@@ -42,6 +42,14 @@ export default function Communicator({ students, classes, schoolName }: Communic
   const [testSubject, setTestSubject] = useState("Mathématiques");
   const [eventDate, setEventDate] = useState(new Date().toISOString().split("T")[0]);
 
+  const [generatedMessage, setGeneratedMessage] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Reset generated message when dependencies change
+  useEffect(() => {
+    setGeneratedMessage("");
+  }, [category, selectedStudentId, testSubject, eventDate, customDetail, aiReportType, testScore]);
+
   // Messages state
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -278,9 +286,44 @@ export default function Communicator({ students, classes, schoolName }: Communic
   const [sendResult, setSendResult] = useState<{ type: 'email' | 'whatsapp', success: boolean, message: string } | null>(null);
 
   const activeTemplate = templates[category];
+  const activeMessage = generatedMessage || activeTemplate.message;
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setSendResult(null);
+    try {
+      const details = [];
+      if (category === 'success') details.push(`Note: ${testScore} en ${testSubject}`);
+      if (category === 'meeting') details.push(`Date: ${eventDate}`);
+      if (category === 'discipline') details.push(`Comportement: ${customDetail}`);
+      if (category === 'ai_report') details.push(`Type: ${aiReportType}`);
+
+      const response = await fetch('/api/generate-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentName: studentName,
+          className: className,
+          category: activeTemplate.title,
+          details: details.join(', ')
+        })
+      });
+      const data = await response.json();
+      if (data.message) {
+        setGeneratedMessage(data.message);
+      } else {
+        setSendResult({ type: 'whatsapp', success: false, message: data.error || 'Erreur de génération' });
+      }
+    } catch (e) {
+      console.error(e);
+      setSendResult({ type: 'whatsapp', success: false, message: 'Erreur réseau' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(activeTemplate.message);
+    navigator.clipboard.writeText(activeMessage);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -301,7 +344,7 @@ export default function Communicator({ students, classes, schoolName }: Communic
         body: JSON.stringify({
           to: parentEmail,
           subject: activeTemplate.subject,
-          text: activeTemplate.message
+          text: activeMessage
         })
       });
       
@@ -358,7 +401,7 @@ export default function Communicator({ students, classes, schoolName }: Communic
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: phoneFormat,
-          message: activeTemplate.message
+          message: activeMessage
         })
       });
       
@@ -407,7 +450,15 @@ export default function Communicator({ students, classes, schoolName }: Communic
         <div className="flex items-center gap-2">
           <div className="bg-slate-100 p-1 rounded-xl flex items-center shrink-0">
             <button
-              onClick={() => setViewMode("compose")}
+              onClick={() => {
+                if (viewMode === "compose") {
+                  setGeneratedMessage("");
+                  setCustomDetail("");
+                  setTestScore("");
+                } else {
+                  setViewMode("compose");
+                }
+              }}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === "compose"
                   ? "bg-white text-slate-800 shadow-sm border border-slate-200"
@@ -622,17 +673,27 @@ export default function Communicator({ students, classes, schoolName }: Communic
             {/* Email Body field styled with professional paper background */}
             <div className="p-6 flex-grow bg-white border-b border-slate-100">
               <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-5 font-sans text-xs leading-relaxed text-slate-700 whitespace-pre-wrap max-h-[420px] overflow-y-auto font-medium">
-                {activeTemplate.message}
+                {activeMessage}
               </div>
             </div>
 
             {/* Quick Action buttons */}
             <div className="p-5 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:bg-slate-50 transition shadow-xs focus:outline-none"
-              >
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition shadow-xs focus:outline-none disabled:opacity-50"
+                >
+                  {isGenerating ? <Sparkles className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {isGenerating ? "Génération..." : "Générer via IA"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:bg-slate-50 transition shadow-xs focus:outline-none"
+                >
                 {copied ? (
                   <>
                     <Check className="h-4 w-4 text-emerald-500" /> Message copié !
@@ -643,6 +704,7 @@ export default function Communicator({ students, classes, schoolName }: Communic
                   </>
                 )}
               </button>
+              </div>
 
               <div className="flex items-center gap-2.5">
                 <button

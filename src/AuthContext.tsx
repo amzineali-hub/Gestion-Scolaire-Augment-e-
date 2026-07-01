@@ -3,7 +3,7 @@ import { auth, db } from './firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
-export type UserRole = 'admin' | 'enseignant' | 'secretariat';
+export type UserRole = 'admin' | 'enseignant' | 'secretariat' | 'parent';
 
 interface AuthContextType {
   currentUser: any | null;

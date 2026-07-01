@@ -19,7 +19,8 @@ import {
   Plus,
   Bell,
   Download,
-  Loader2
+  Loader2,
+  History
 } from "lucide-react";
 
 interface FinanceManagerProps {
@@ -59,6 +60,9 @@ export default function FinanceManager({
   const [reminderNotification, setReminderNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  
+  // History Modal
+  const [selectedStudentHistory, setSelectedStudentHistory] = useState<Student | null>(null);
 
   const handlePrintDoc = async (elementId: string, title: string) => {
     const el = document.getElementById(elementId);
@@ -524,6 +528,14 @@ export default function FinanceManager({
                             <div>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="font-bold text-slate-800 text-xs">{student.firstName} {student.lastName}</p>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedStudentHistory(student)}
+                                  className="text-slate-400 hover:text-indigo-600 transition p-0.5 rounded-full hover:bg-indigo-50"
+                                  title="Voir l'historique des paiements"
+                                >
+                                  <History className="h-3 w-3" />
+                                </button>
                                 {isCritOverdue && (
                                   <span className="inline-flex items-center gap-0.5 bg-rose-50 text-rose-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border border-rose-100 shrink-0">
                                     <AlertCircle className="h-2.5 w-2.5 text-rose-500 shrink-0" /> {getOverdueDays(inv.dueDate)}j de retard
@@ -622,6 +634,78 @@ export default function FinanceManager({
           </div>
         )}
       </div>
+
+      {/* STUDENT PAYMENT HISTORY MODAL */}
+      {selectedStudentHistory && (
+        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs animate-in fade-in-50 duration-200">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-xl border overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="px-6 py-5 bg-slate-50 border-b flex items-center justify-between shrink-0">
+              <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                <History className="h-5 w-5 text-indigo-500" /> 
+                Historique de Paiement - {selectedStudentHistory.firstName} {selectedStudentHistory.lastName}
+              </h3>
+              <button onClick={() => setSelectedStudentHistory(null)} className="p-1 hover:bg-slate-200 rounded-full transition">
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="space-y-4">
+                {invoices.filter(i => i.studentId === selectedStudentHistory.id).length > 0 ? (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b-2 text-[10px] uppercase text-slate-450 tracking-wider">
+                        <th className="pb-2">Période</th>
+                        <th className="pb-2">Date d'Échéance</th>
+                        <th className="pb-2">Montant</th>
+                        <th className="pb-2">Statut</th>
+                        <th className="pb-2">Date de Paiement</th>
+                        <th className="pb-2">Méthode</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                      {invoices.filter(i => i.studentId === selectedStudentHistory.id).sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()).map(inv => (
+                        <tr key={inv.id} className="hover:bg-slate-50">
+                          <td className="py-3 font-medium text-slate-800">{inv.month}</td>
+                          <td className="py-3">{inv.dueDate}</td>
+                          <td className="py-3 font-bold">{inv.amount} MAD</td>
+                          <td className="py-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold text-[10px] ${
+                              inv.status === "payé" 
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100 border" 
+                                : inv.status === "retard"
+                                  ? "bg-rose-50 text-rose-700 border-rose-100 border"
+                                  : "bg-amber-50 text-amber-700 border-amber-100 border"
+                            }`}>
+                              {inv.status === "payé" ? "Payé" : inv.status === "retard" ? "En Retard" : "Impayé"}
+                            </span>
+                          </td>
+                          <td className="py-3">{inv.paymentDate || "-"}</td>
+                          <td className="py-3">{inv.paymentMethod || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-10 text-slate-400 italic bg-slate-50 rounded-xl border border-dashed">
+                    Aucun historique de paiement pour cet élève.
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 bg-slate-50 border-t flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedStudentHistory(null)}
+                className="px-4 py-2 rounded-lg text-sm font-bold border bg-white text-slate-705 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Fermer l'historique
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BILLING INVOICES FOR ALL ACTIVE STUDENTS GENERATOR MODAL */}
       {isOpenBillingModal && (
@@ -814,8 +898,12 @@ export default function FinanceManager({
                 <div className="flex justify-between items-start border-b-2 border-dashed border-slate-200 pb-5">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">🇲🇦</span>
-                      <h4 className="font-extrabold text-slate-900 text-base">GROUPE SCOLAIRE AMZINE</h4>
+                      {schoolLogo ? (
+                        <img src={schoolLogo} alt="Logo de l'école" className="h-10 w-10 object-contain rounded-md" crossOrigin="anonymous" />
+                      ) : (
+                        <span className="text-xl">🇲🇦</span>
+                      )}
+                      <h4 className="font-extrabold text-slate-900 text-base">{schoolName || "GROUPE SCOLAIRE EXCELLENCE"}</h4>
                     </div>
                     <p className="text-[10px] text-black">
                       Enseignement Privé - Casablanca, Maroc

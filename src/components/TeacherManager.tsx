@@ -25,6 +25,7 @@ interface TeacherManagerProps {
   onEditTeacher: (teacher: Teacher) => void;
   onDeleteTeacher: (id: string) => void;
   initialSearchQuery?: string;
+  isLoading?: boolean;
 }
 
 export default function TeacherManager({
@@ -34,7 +35,8 @@ export default function TeacherManager({
   onAddTeacher,
   onEditTeacher,
   onDeleteTeacher,
-  initialSearchQuery = ""
+  initialSearchQuery = "",
+  isLoading = false
 }: TeacherManagerProps) {
   // Navigation / Filter states
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
@@ -227,7 +229,41 @@ export default function TeacherManager({
 
       {/* List / Grid layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {paginatedTeachers.map(tch => {
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={`skeleton-${i}`} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col justify-between animate-pulse">
+              <div className="p-5 border-b border-slate-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-slate-200"></div>
+                    <div>
+                      <div className="h-4 bg-slate-200 rounded w-24 mb-2"></div>
+                      <div className="h-3 bg-slate-200 rounded w-16"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-5 flex-1 space-y-4">
+                <div>
+                  <div className="h-3 bg-slate-200 rounded w-20 mb-2"></div>
+                  <div className="h-6 bg-slate-200 rounded w-full"></div>
+                </div>
+                <div>
+                  <div className="h-3 bg-slate-200 rounded w-20 mb-2"></div>
+                  <div className="flex gap-1">
+                    <div className="h-6 bg-slate-200 rounded w-12"></div>
+                    <div className="h-6 bg-slate-200 rounded w-12"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                <div className="h-8 bg-slate-200 rounded-lg w-8"></div>
+                <div className="h-8 bg-slate-200 rounded-lg w-8"></div>
+              </div>
+            </div>
+          ))
+        ) : (
+          paginatedTeachers.map(tch => {
           // Find Subjects Object
           const assignedSubjects = subjects.filter(s => tch.subjectIds.includes(s.id));
           // Find Classes Object
@@ -349,9 +385,9 @@ export default function TeacherManager({
               </div>
             </div>
           );
-        })}
+        }))}
 
-        {filteredTeachers.length === 0 && (
+        {filteredTeachers.length === 0 && !isLoading && (
           <div className="col-span-full bg-white rounded-2xl border border-slate-100 p-12 text-center shadow-xs">
             <GraduationCap className="h-12 w-12 text-black mx-auto mb-2" />
             <p className="text-black font-medium">Aucun professeur ne correspond à vos critères</p>

@@ -175,6 +175,60 @@ app.get("/api/whatsapp/bot-status", (req, res) => {
   res.json({ botStatus });
 });
 
+// Generate custom parental messages with Gemini
+app.post("/api/generate-message", async (req, res) => {
+  const { studentName, className, category, details } = req.body;
+  
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ 
+      error: "La clé API Gemini n'est pas configurée. Impossible de générer le message." 
+    });
+  }
+
+  try {
+    const prompt = `Tu es le directeur d'une école marocaine (Madrasati). Rédige un message WhatsApp professionnel, bienveillant et concis (maximum 4 phrases) à envoyer au parent de l'élève ${studentName} (Classe: ${className}).
+Sujet principal : ${category}.
+Détails supplémentaires à inclure : ${details || "Aucun détail spécifique"}.
+Le message doit être directement adressé au parent ("Chers parents", "Bonjour", etc.) et se terminer par une formule de politesse courte.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+    });
+    
+    res.json({ message: response.text });
+  } catch (error) {
+    console.error("[Gemini Generate] Error:", error);
+    res.status(500).json({ error: "Erreur lors de la génération avec l'IA." });
+  }
+});
+
+// Generate response for internal app assistant
+app.post("/api/chat", async (req, res) => {
+  const { message } = req.body;
+  
+  if (!process.env.GEMINI_API_KEY) {
+    return res.json({ 
+      reply: "Désolé, la clé API Gemini n'est pas configurée. Je suis l'assistant par défaut pour le moment." 
+    });
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: message,
+      config: {
+        systemInstruction: "Tu es 'Assistant Madrasati', un assistant virtuel intégré au tableau de bord d'une application de gestion scolaire appelée Madrasati. Tu aides les directeurs d'école à utiliser l'application (qui gère les élèves, les classes, la facturation, les présences par QR code, la communication WhatsApp avec les parents). Réponds de manière concise, professionnelle et utile en français.",
+      }
+    });
+    
+    res.json({ reply: response.text });
+  } catch (error) {
+    console.error("[Gemini Chat] Error:", error);
+    res.status(500).json({ reply: "Désolé, une erreur s'est produite lors de la communication avec l'IA." });
+  }
+});
+
 // WhatsApp Webhook Verification Route (GET)
 app.get("/api/whatsapp/webhook", (req, res) => {
   const verify_token = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "my_secure_verify_token_123";
