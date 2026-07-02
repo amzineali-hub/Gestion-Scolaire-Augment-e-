@@ -1345,7 +1345,7 @@ export default function AttendanceManager({
 
           {/* Main Attendance sheet columns */}
           <div className="overflow-x-auto border rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[800px]">
               <thead className="bg-slate-50 text-[10px] font-bold text-black uppercase tracking-wider border-b">
                 <tr>
                   <th className="px-4 py-3">Élève</th>

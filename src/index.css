@@ -6,6 +6,19 @@
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
   
+  --color-indigo-50: var(--app-primary-50, #eef2ff);
+  --color-indigo-100: var(--app-primary-100, #e0e7ff);
+  --color-indigo-150: var(--app-primary-150, #d6e0ff);
+  --color-indigo-200: var(--app-primary-200, #c7d2fe);
+  --color-indigo-300: var(--app-primary-300, #a5b4fc);
+  --color-indigo-400: var(--app-primary-400, #818cf8);
+  --color-indigo-500: var(--app-primary-500, #6366f1);
+  --color-indigo-600: var(--app-primary-600, #4f46e5);
+  --color-indigo-700: var(--app-primary-700, #4338ca);
+  --color-indigo-800: var(--app-primary-800, #3730a3);
+  --color-indigo-900: var(--app-primary-900, #312e81);
+  --color-indigo-950: var(--app-primary-950, #1e1b4b);
+
   --animate-spin-slow: spin 12s linear infinite;
   --animate-bounce-gentle: bounce-gentle 2s ease-in-out infinite;
   --animate-float: float 4s ease-in-out infinite;

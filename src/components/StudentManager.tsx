@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { exportToExcel } from "../utils/exportUtils";
 import { Student, Class, Subject } from "../types";
 import { 
   Users, 
@@ -289,35 +290,71 @@ export default function StudentManager({
   const handleExportCSV = () => {
     setIsExportingCSV(true);
     setTimeout(() => {
-      // Dynamic generation of Moroccan CSV file with all student details and selected options
-      const headers = "Identifiant,Prenom,Nom,Classe,Cycle,Parent,Telephone,Email,Statut,Date_Inscription,Frais_Classe_MAD,Solde_Du_MAD,Option_Transport,Option_Cantine,Option_Soutien,Option_Club_Sport,Option_Suivi_WhatsApp,Option_Assurance,Option_IA\n";
-      const rows = filteredStudents.map(s => {
+      const data = filteredStudents.map(s => {
         const assignedClass = classes.find(c => c.id === s.classId);
-        const className = assignedClass?.name || "N/A";
-        const cycle = assignedClass?.cycle || "N/A";
-        const classFee = assignedClass?.feeAmount || 0;
-        
-        const transport = s.transportOption ? "Oui" : "Non";
-        const canteen = s.canteenOption ? "Oui" : "Non";
-        const tutoring = s.tutoringOption ? "Oui" : "Non";
-        const sport = s.sportOption ? "Oui" : "Non";
-        const sms = s.smsOption ? "Oui" : "Non";
-        const insurance = s.insuranceOption ? "Oui" : "Non";
-        const aiOptVal = s.aiOption ? "Oui" : "Non";
+        return {
+          "Identifiant": s.id,
+          "Prénom": s.firstName,
+          "Nom": s.lastName,
+          "Classe": assignedClass?.name || "N/A",
+          "Cycle": assignedClass?.cycle || "N/A",
+          "Parent": s.parentName,
+          "Téléphone": s.parentPhone || "",
+          "Email": s.parentEmail || "",
+          "Statut": s.status,
+          "Date Inscription": s.registrationDate,
+          "Frais Classe (MAD)": assignedClass?.feeAmount || 0,
+          "Solde Dû (MAD)": s.outstandingBalance,
+          "Transport": s.transportOption ? "Oui" : "Non",
+          "Cantine": s.canteenOption ? "Oui" : "Non",
+          "Soutien": s.tutoringOption ? "Oui" : "Non",
+          "Sport": s.sportOption ? "Oui" : "Non",
+          "Suivi WhatsApp": s.smsOption ? "Oui" : "Non",
+          "Assurance": s.insuranceOption ? "Oui" : "Non",
+          "Option IA": s.aiOption ? "Oui" : "Non"
+        };
+      });
+      import("../utils/exportUtils").then(({ exportToCSV }) => {
+        exportToCSV(data, "registre_eleves_export");
+        setIsExportingCSV(false);
+      });
+    }, 500);
+  };
 
-        return `${s.id},"${s.firstName}","${s.lastName}","${className}","${cycle}","${s.parentName}","${s.parentPhone || ""}","${s.parentEmail || ""}","${s.status}","${s.registrationDate}",${classFee},${s.outstandingBalance},"${transport}","${canteen}","${tutoring}","${sport}","${sms}","${insurance}","${aiOptVal}"`;
-      }).join("\n");
-      
-      const blob = new Blob(["\uFEFF" + headers + rows], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `registre_eleves_export.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setIsExportingCSV(false);
-    }, 1200);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const handleExportExcel = () => {
+    setIsExportingExcel(true);
+    setTimeout(() => {
+      const data = filteredStudents.map(s => {
+        const assignedClass = classes.find(c => c.id === s.classId);
+        return {
+          "Identifiant": s.id,
+          "Prénom": s.firstName,
+          "Nom": s.lastName,
+          "Classe": assignedClass?.name || "N/A",
+          "Cycle": assignedClass?.cycle || "N/A",
+          "Parent": s.parentName,
+          "Téléphone": s.parentPhone || "",
+          "Email": s.parentEmail || "",
+          "Statut": s.status,
+          "Date Inscription": s.registrationDate,
+          "Frais Classe (MAD)": assignedClass?.feeAmount || 0,
+          "Solde Dû (MAD)": s.outstandingBalance,
+          "Transport": s.transportOption ? "Oui" : "Non",
+          "Cantine": s.canteenOption ? "Oui" : "Non",
+          "Soutien": s.tutoringOption ? "Oui" : "Non",
+          "Sport": s.sportOption ? "Oui" : "Non",
+          "Suivi WhatsApp": s.smsOption ? "Oui" : "Non",
+          "Assurance": s.insuranceOption ? "Oui" : "Non",
+          "Option IA": s.aiOption ? "Oui" : "Non"
+        };
+      });
+      import("../utils/exportUtils").then(({ exportToExcel }) => {
+        exportToExcel(data, "registre_eleves_export", "Élèves");
+        setIsExportingExcel(false);
+      });
+    }, 500);
   };
 
   const handleExportMassar = () => {
@@ -502,10 +539,29 @@ export default function StudentManager({
         </div>
         
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {/* Export Excel Button */}
+          <button
+            onClick={handleExportExcel}
+            disabled={isExportingCSV || isExportingExcel || isExportingMassar}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-3.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition duration-150 cursor-pointer disabled:opacity-60"
+          >
+            {isExportingExcel ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                <span>Exportation...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5 text-white" />
+                <span>Exporter Excel</span>
+              </>
+            )}
+          </button>
+
           {/* Export CSV Button */}
           <button
             onClick={handleExportCSV}
-            disabled={isExportingCSV || isExportingMassar}
+            disabled={isExportingCSV || isExportingExcel || isExportingMassar}
             className="bg-white hover:bg-slate-50 text-slate-700 font-semibold py-2 px-3.5 rounded-xl text-xs border border-slate-200 flex items-center gap-1.5 shadow-xs transition duration-150 cursor-pointer disabled:opacity-60"
           >
             {isExportingCSV ? (
@@ -641,7 +697,7 @@ export default function StudentManager({
         {filteredStudents.length > 0 ? (
           <>
             <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-150 text-xs font-bold text-black uppercase tracking-wider">
                   <th className="px-6 py-4">Nom de l'Élève</th>
@@ -1475,8 +1531,8 @@ export default function StudentManager({
                      </div>
 
                      {/* Grades and Coefficients core layout table */}
-                     <div className="border border-slate-300 rounded-xl overflow-hidden mb-4 shrink-0">
-                       <table className="w-full text-left text-[11px] border-collapse leading-normal">
+                     <div className="border border-slate-300 rounded-xl overflow-x-auto mb-4 shrink-0">
+                       <table className="w-full text-left text-[11px] border-collapse leading-normal min-w-[600px]">
                          <thead>
                            <tr className="bg-slate-50 border-b-2 border-slate-300 font-bold text-slate-605 uppercase text-[8px] tracking-wider">
                              <th className="px-3.5 py-2">Code</th>

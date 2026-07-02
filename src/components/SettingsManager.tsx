@@ -20,6 +20,8 @@ interface SettingsManagerProps {
   setContactEmail: (email: string) => void;
   schoolLogo: string;
   setSchoolLogo: (logo: string) => void;
+  themeColor: string;
+  setThemeColor: (color: string) => void;
   onResetData: () => void;
 }
 
@@ -39,6 +41,8 @@ export default function SettingsManager({
   setContactEmail,
   schoolLogo,
   setSchoolLogo,
+  themeColor,
+  setThemeColor,
   onResetData
 }: SettingsManagerProps) {
   const [successMsg, setSuccessMsg] = useState("");
@@ -62,6 +66,7 @@ export default function SettingsManager({
     localStorage.setItem("madrasati_phone", contactPhone);
     localStorage.setItem("madrasati_email", contactEmail);
     localStorage.setItem("madrasati_school_logo", schoolLogo);
+    localStorage.setItem("madrasati_themeColor", themeColor);
 
     // Save to Firestore so it is globally active and validated on header and reload!
     if (schoolId && db) {
@@ -74,7 +79,8 @@ export default function SettingsManager({
           bilingualType: bilingualType,
           phone: contactPhone,
           email: contactEmail,
-          logo: schoolLogo
+          logo: schoolLogo,
+          themeColor: themeColor
         });
       } catch (err) {
         console.error("Error updating school settings in Firestore:", err);
@@ -524,6 +530,49 @@ export default function SettingsManager({
                   <p className="text-[10px] text-black">Exemple: https://mon-domaine.com/images/logo.png</p>
                 </div>
               )}
+            </div>
+
+            {/* Theme Color Selection */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 space-y-3.5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-indigo-500" />
+                <span className="text-xs font-bold text-slate-750 uppercase">Couleur Principale du Thème</span>
+              </div>
+              <p className="text-[11px] font-semibold text-black">
+                Choisissez la couleur dominante qui sera appliquée sur l'ensemble de la plateforme.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setThemeColor("indigo")}
+                  className={`h-8 w-8 rounded-full bg-indigo-600 transition-transform ${themeColor === "indigo" ? "ring-2 ring-offset-2 ring-indigo-600 scale-110" : "hover:scale-110"}`}
+                  title="Indigo"
+                />
+                <button
+                  type="button"
+                  onClick={() => setThemeColor("emerald")}
+                  className={`h-8 w-8 rounded-full bg-emerald-600 transition-transform ${themeColor === "emerald" ? "ring-2 ring-offset-2 ring-emerald-600 scale-110" : "hover:scale-110"}`}
+                  title="Émeraude"
+                />
+                <button
+                  type="button"
+                  onClick={() => setThemeColor("rose")}
+                  className={`h-8 w-8 rounded-full bg-rose-600 transition-transform ${themeColor === "rose" ? "ring-2 ring-offset-2 ring-rose-600 scale-110" : "hover:scale-110"}`}
+                  title="Rose"
+                />
+                <button
+                  type="button"
+                  onClick={() => setThemeColor("sky")}
+                  className={`h-8 w-8 rounded-full bg-sky-600 transition-transform ${themeColor === "sky" ? "ring-2 ring-offset-2 ring-sky-600 scale-110" : "hover:scale-110"}`}
+                  title="Bleu Ciel"
+                />
+                <button
+                  type="button"
+                  onClick={() => setThemeColor("amber")}
+                  className={`h-8 w-8 rounded-full bg-amber-500 transition-transform ${themeColor === "amber" ? "ring-2 ring-offset-2 ring-amber-500 scale-110" : "hover:scale-110"}`}
+                  title="Ambre"
+                />
+              </div>
             </div>
 
             <div className="pt-4 border-t flex justify-end">

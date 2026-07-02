@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot, doc, setDoc, query, deleteDoc, updateDoc } from 'firebase/firestore';
+import { 
+  Subject, 
+  Class, 
+  Student, 
+  Teacher, 
+  ScheduleItem, 
+  Invoice,
+  AttendanceRecord
+} from '../types';
+import { 
+  INITIAL_SUBJECTS, 
+  INITIAL_CLASSES, 
+  INITIAL_TEACHERS, 
+  INITIAL_STUDENTS, 
+  INITIAL_SCHEDULES, 
+  INITIAL_INVOICES 
+} from "../data";
 
 export enum OperationType {
   CREATE = 'create',
@@ -45,18 +62,14 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  
+  if (errInfo.error.toLowerCase().includes('quota')) {
+    console.warn('Firestore Quota Exceeded (falling back to local data): ', JSON.stringify(errInfo));
+  } else {
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+  }
   // throw new Error(JSON.stringify(errInfo));
 }
-import { 
-  Subject, 
-  Class, 
-  Student, 
-  Teacher, 
-  ScheduleItem, 
-  Invoice,
-  AttendanceRecord
-} from '../types';
 
 export function useFirebaseData(schoolId: string | null) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -84,47 +97,59 @@ export function useFirebaseData(schoolId: string | null) {
 
     const schoolRef = doc(db, 'schools', schoolId);
     
+    const isQuotaError = (error: unknown) => {
+      const msg = String(error).toLowerCase();
+      return msg.includes('quota') || msg.includes('permission');
+    };
+
     // Subcollections with handlers
     const unsubStudents = onSnapshot(collection(schoolRef, 'students'), (snapshot) => {
       setStudents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Student)));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `schools/${schoolId}/students`);
+      if (isQuotaError(error)) setStudents(INITIAL_STUDENTS);
     });
 
     const unsubClasses = onSnapshot(collection(schoolRef, 'classes'), (snapshot) => {
       setClasses(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Class)));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `schools/${schoolId}/classes`);
+      if (isQuotaError(error)) setClasses(INITIAL_CLASSES);
     });
 
     const unsubTeachers = onSnapshot(collection(schoolRef, 'teachers'), (snapshot) => {
         setTeachers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Teacher)));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `schools/${schoolId}/teachers`);
+      if (isQuotaError(error)) setTeachers(INITIAL_TEACHERS);
     });
 
     const unsubSubjects = onSnapshot(collection(schoolRef, 'subjects'), (snapshot) => {
         setSubjects(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Subject)));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `schools/${schoolId}/subjects`);
+      if (isQuotaError(error)) setSubjects(INITIAL_SUBJECTS);
     });
 
     const unsubSchedules = onSnapshot(collection(schoolRef, 'schedules'), (snapshot) => {
         setSchedules(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ScheduleItem)));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `schools/${schoolId}/schedules`);
+      if (isQuotaError(error)) setSchedules(INITIAL_SCHEDULES);
     });
 
     const unsubInvoices = onSnapshot(collection(schoolRef, 'invoices'), (snapshot) => {
         setInvoices(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Invoice)));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `schools/${schoolId}/invoices`);
+      if (isQuotaError(error)) setInvoices(INITIAL_INVOICES);
     });
 
     const unsubAttendance = onSnapshot(collection(schoolRef, 'attendance'), (snapshot) => {
         setAttendance(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any)));
     }, (error) => {
         handleFirestoreError(error, OperationType.GET, `schools/${schoolId}/attendance`);
+        if (isQuotaError(error)) setAttendance([]);
     });
 
     setLoadingInitial(false);

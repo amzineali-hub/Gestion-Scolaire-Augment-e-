@@ -342,8 +342,9 @@ export default function ClassCourseManager({
       {/* RENDER SUBJECTS TAB */}
       {activeSubTab === "subjects" && (
         <div className="bg-white rounded-2xl border border-slate-150 shadow-xs overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
               <tr className="bg-slate-50 border-b border-slate-150 text-xs font-bold text-black uppercase tracking-wider">
                 <th className="px-6 py-4">Code</th>
                 <th className="px-6 py-4">Intitulé de la Matière</th>
@@ -415,7 +416,8 @@ export default function ClassCourseManager({
                 </tr>
               )))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
 

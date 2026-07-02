@@ -358,8 +358,10 @@ export default function Dashboard({
             
             {/* Card 1 - Total Students */}
             <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               whileHover={{ scale: 1.02, y: -4 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("students")}
               className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >
@@ -398,8 +400,10 @@ export default function Dashboard({
 
             {/* Card 2 - Total Teachers */}
             <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               whileHover={{ scale: 1.02, y: -4 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("teachers")}
               className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >
@@ -433,8 +437,10 @@ export default function Dashboard({
 
             {/* Card 3 - Active Classes */}
             <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               whileHover={{ scale: 1.02, y: -4 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("classes")}
               className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >
@@ -468,8 +474,10 @@ export default function Dashboard({
 
             {/* Card 4 - Recovery Rate */}
             <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               whileHover={{ scale: 1.02, y: -4 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              transition={{ delay: 0.4, type: "spring", stiffness: 300, damping: 20 }}
               onClick={() => setActiveTab("financials")}
               className="bg-white p-6 rounded-[24px] border border-slate-150/80 shadow-sm hover:shadow-md cursor-pointer relative group flex flex-col justify-between min-h-[160px]"
             >

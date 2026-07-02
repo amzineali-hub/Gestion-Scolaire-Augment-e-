@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { motion } from "motion/react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import autoTable from "jspdf-autotable";
 import { Student, Class, Subject } from "../types";
 import { 
   Users, 
@@ -177,6 +178,138 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
     }
   };
 
+  const handleDirectExportPDF = (student: Student) => {
+    setIsExportingPDF(true);
+    try {
+      const studentClass = classes.find(c => c.id === student.classId);
+      const cycleSubjects = studentClass ? subjects.filter(s => s.cycle === studentClass.cycle) : [];
+      
+      // Generate mock/real grades
+      const records = cycleSubjects.map(sub => ({
+        id: sub.id,
+        name: sub.name,
+        cc: Math.floor(Math.random() * 8) + 12,
+        exam: Math.floor(Math.random() * 8) + 12,
+        coeff: sub.hoursPerWeek > 3 ? 3 : (sub.hoursPerWeek > 1 ? 2 : 1)
+      }));
+
+      const doc = new jsPDF('p', 'mm', 'a4');
+      
+      // Header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(30, 41, 59); // slate-800
+      doc.text("BULLETIN DE NOTES", 105, 25, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.text("Groupe Scolaire Excellence", 105, 32, { align: "center" });
+      
+      // Student info background
+      doc.setFillColor(248, 250, 252); // slate-50
+      doc.roundedRect(14, 45, 182, 35, 3, 3, "F");
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.roundedRect(14, 45, 182, 35, 3, 3, "S");
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Élève :", 20, 55);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(12);
+      doc.text(`${student.firstName} ${student.lastName}`.toUpperCase(), 20, 62);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text("Classe :", 100, 55);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text(studentClass ? `${studentClass.name} (${studentClass.level})` : 'N/A', 100, 62);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Année Scolaire : ${bulletinAcademicYear}`, 20, 72);
+      doc.text(`Trimestre : ${bulletinSemester}`, 100, 72);
+
+      const tableColumn = ["Matière", "C.C", "Exam", "Moyenne", "Coeff", "Appréciation"];
+      const tableRows: any[] = [];
+
+      let totalPoints = 0;
+      let totalCoeffs = 0;
+
+      records.forEach(rec => {
+        const avg = (rec.cc + rec.exam) / 2;
+        totalPoints += avg * rec.coeff;
+        totalCoeffs += rec.coeff;
+        
+        let appreciation = "Passable";
+        if (avg >= 16) appreciation = "Très Bien";
+        else if (avg >= 14) appreciation = "Bien";
+        else if (avg >= 12) appreciation = "Assez Bien";
+        else if (avg < 10) appreciation = "Insuffisant";
+
+        tableRows.push([
+          rec.name,
+          rec.cc.toFixed(2),
+          rec.exam.toFixed(2),
+          avg.toFixed(2),
+          rec.coeff.toString(),
+          appreciation
+        ]);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 90,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 4, textColor: [30, 41, 59], font: 'helvetica' },
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          1: { halign: 'center' },
+          2: { halign: 'center' },
+          3: { halign: 'center', fontStyle: 'bold' },
+          4: { halign: 'center' }
+        }
+      });
+
+      const overallAvg = totalCoeffs > 0 ? (totalPoints / totalCoeffs).toFixed(2) : "0.00";
+      
+      const finalY = (doc as any).lastAutoTable.finalY || 90;
+      
+      // Footer average box
+      doc.setFillColor(238, 242, 255); // indigo-50
+      doc.roundedRect(120, finalY + 15, 76, 20, 2, 2, "F");
+      doc.setDrawColor(199, 210, 254); // indigo-200
+      doc.roundedRect(120, finalY + 15, 76, 20, 2, 2, "S");
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(67, 56, 202); // indigo-700
+      doc.text("MOYENNE GÉNÉRALE", 125, finalY + 27);
+      
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(79, 70, 229); // indigo-600
+      doc.text(`${overallAvg} / 20`, 170, finalY + 27);
+      
+      // School stamp
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text("Le Directeur de l'Établissement", 20, finalY + 25);
+      
+      doc.save(`Bulletin_${student.firstName}_${student.lastName}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF", error);
+      alert("Une erreur est survenue lors de l'exportation du PDF.");
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   const bulletinOverallAverage = gradeRecords.length > 0
     ? (gradeRecords.reduce((acc, rec) => acc + (((rec.cc + rec.exam) / 2) * rec.coeff), 0) / gradeRecords.reduce((acc, rec) => acc + rec.coeff, 0)).toFixed(2)
     : "0.00";
@@ -227,7 +360,7 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
       {/* STUDENTS LIST SECTION */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500 font-extrabold">
                 <th className="p-4 rounded-tl-2xl">Nom de l'élève</th>
@@ -268,14 +401,25 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
                         </p>
                       </td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => handleOpenBulletinModal(student)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded-lg shadow-sm hover:shadow transition-all text-xs flex items-center gap-2 inline-flex"
-                          title="Générer et exporter le bulletin en PDF"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          Générer PDF
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenBulletinModal(student)}
+                            className="bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-bold py-1.5 px-3 rounded-lg shadow-sm transition-all text-xs flex items-center gap-2"
+                            title="Voir et éditer le bulletin"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            Voir / Éditer
+                          </button>
+                          <button
+                            onClick={() => handleDirectExportPDF(student)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded-lg shadow-sm hover:shadow transition-all text-xs flex items-center gap-2"
+                            title="Exporter directement le bulletin en PDF"
+                            disabled={isExportingPDF}
+                          >
+                            {isExportingPDF ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                            PDF Direct
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -472,9 +616,10 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
                     </div>
 
                     {/* Grades Table */}
-                    <table className="w-full border-collapse mb-8 text-sm">
-                      <thead>
-                        <tr className="bg-slate-800 text-white">
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse mb-8 text-sm min-w-[700px]">
+                        <thead>
+                          <tr className="bg-slate-800 text-white">
                           <th className="border border-slate-800 p-2 text-left font-bold uppercase text-xs w-[40%]">Matière</th>
                           <th className="border border-slate-800 p-2 text-center font-bold uppercase text-xs">C.C</th>
                           <th className="border border-slate-800 p-2 text-center font-bold uppercase text-xs">Exam</th>
@@ -504,7 +649,8 @@ const BulletinsManager: React.FC<BulletinsManagerProps> = ({ students, classes, 
                           );
                         })}
                       </tbody>
-                    </table>
+                      </table>
+                    </div>
 
                     {/* Summary Footer */}
                     <div className="flex justify-between items-end mt-8 pt-6 border-t-2 border-slate-800">

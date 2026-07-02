@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { exportToExcel } from "../utils/exportUtils";
 import { Invoice, Student, Class } from "../types";
 import { 
   DollarSign, 
@@ -95,34 +96,52 @@ export default function FinanceManager({
   const handleExportCSV = () => {
     setIsExportingCSV(true);
     setTimeout(() => {
-      const headers = "Identifiant,Mois,Montant_MAD,Date_Echeance,Statut,Eleve,Classe,Date_Systeme\n";
-      const rows = filteredInvoices.map(inv => {
+      const data = filteredInvoices.map(inv => {
         const student = students.find(s => s.id === inv.studentId);
         const cls = student ? classes.find(c => c.id === student.classId) : null;
-        
-        return [
-          inv.id,
-          inv.month,
-          inv.amount,
-          inv.dueDate,
-          inv.status === 'payé' ? "Payée" : inv.status === 'impayé' ? "Impayée" : "Partielle",
-          student ? `${student.firstName} ${student.lastName}` : "Étudiant inconnu",
-          cls ? cls.name : "-",
-          new Date().toISOString()
-        ].map(v => `"${v}"`).join(',');
+        return {
+          "Identifiant": inv.id,
+          "Mois": inv.month,
+          "Montant (MAD)": inv.amount,
+          "Date Échéance": inv.dueDate,
+          "Statut": inv.status === 'payé' ? "Payée" : inv.status === 'impayé' ? "Impayée" : "Partielle",
+          "Élève": student ? `${student.firstName} ${student.lastName}` : "Étudiant inconnu",
+          "Classe": cls ? cls.name : "-",
+          "Date Système": new Date().toISOString()
+        };
       });
 
-      const csvContent = headers + rows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `factures_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      setIsExportingCSV(false);
+      import("../utils/exportUtils").then(({ exportToCSV }) => {
+        exportToCSV(data, `factures_${new Date().toISOString().split('T')[0]}`);
+        setIsExportingCSV(false);
+      });
+    }, 600);
+  };
+
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const handleExportExcel = () => {
+    setIsExportingExcel(true);
+    setTimeout(() => {
+      const data = filteredInvoices.map(inv => {
+        const student = students.find(s => s.id === inv.studentId);
+        const cls = student ? classes.find(c => c.id === student.classId) : null;
+        return {
+          "Identifiant": inv.id,
+          "Mois": inv.month,
+          "Montant (MAD)": inv.amount,
+          "Date Échéance": inv.dueDate,
+          "Statut": inv.status === 'payé' ? "Payée" : inv.status === 'impayé' ? "Impayée" : "Partielle",
+          "Élève": student ? `${student.firstName} ${student.lastName}` : "Étudiant inconnu",
+          "Classe": cls ? cls.name : "-",
+          "Date Système": new Date().toISOString()
+        };
+      });
+
+      import("../utils/exportUtils").then(({ exportToExcel }) => {
+        exportToExcel(data, `factures_${new Date().toISOString().split('T')[0]}`, "Factures");
+        setIsExportingExcel(false);
+      });
     }, 600);
   };
 
@@ -325,8 +344,26 @@ export default function FinanceManager({
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <button
+            onClick={handleExportExcel}
+            disabled={isExportingCSV || isExportingExcel}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-3.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition duration-150 cursor-pointer disabled:opacity-60"
+          >
+            {isExportingExcel ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                <span>Exportation...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5 text-white" />
+                <span>Exporter Excel</span>
+              </>
+            )}
+          </button>
+          
+          <button
             onClick={handleExportCSV}
-            disabled={isExportingCSV}
+            disabled={isExportingCSV || isExportingExcel}
             className="bg-white hover:bg-slate-50 text-slate-700 font-semibold py-2 px-3.5 rounded-xl text-xs border border-slate-200 flex items-center gap-1.5 shadow-xs transition duration-150 cursor-pointer disabled:opacity-60"
           >
             {isExportingCSV ? (
@@ -493,7 +530,7 @@ export default function FinanceManager({
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {filteredInvoices.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-150 text-xs font-bold text-black uppercase tracking-wider">
                   <th className="px-6 py-4">Élève concerné</th>
@@ -652,9 +689,10 @@ export default function FinanceManager({
             <div className="p-6 overflow-y-auto">
               <div className="space-y-4">
                 {invoices.filter(i => i.studentId === selectedStudentHistory.id).length > 0 ? (
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b-2 text-[10px] uppercase text-slate-450 tracking-wider">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[600px]">
+                      <thead>
+                        <tr className="border-b-2 text-[10px] uppercase text-slate-450 tracking-wider">
                         <th className="pb-2">Période</th>
                         <th className="pb-2">Date d'Échéance</th>
                         <th className="pb-2">Montant</th>
@@ -685,7 +723,8 @@ export default function FinanceManager({
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                    </table>
+                  </div>
                 ) : (
                   <div className="text-center py-10 text-slate-400 italic bg-slate-50 rounded-xl border border-dashed">
                     Aucun historique de paiement pour cet élève.
@@ -948,9 +987,10 @@ export default function FinanceManager({
                 </div>
 
                 {/* Fee list */}
-                <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="border-b font-bold text-black uppercase tracking-wider text-[9px]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left min-w-[500px]">
+                    <thead>
+                      <tr className="border-b font-bold text-black uppercase tracking-wider text-[9px]">
                       <th className="py-2.5">Libellé Frais / Rubrique</th>
                       <th className="py-2.5 text-center">Période</th>
                       <th className="py-2.5 text-right">{isPaid ? "Montant Réglé" : "Montant Dû"}</th>
@@ -1076,7 +1116,8 @@ export default function FinanceManager({
                       </td>
                     </tr>
                   </tbody>
-                </table>
+                  </table>
+                </div>
 
                 {/* Legal notes */}
                 <div className="pt-4 border-t border-dashed flex justify-between items-end">
@@ -1327,8 +1368,8 @@ export default function FinanceManager({
                     </div>
 
                     {/* Table of invoices listing */}
-                    <div className="border border-slate-250/80 rounded-xl overflow-hidden mb-6">
-                      <table className="w-full text-left text-[11px] border-collapse leading-normal">
+                    <div className="border border-slate-250/80 rounded-xl overflow-x-auto mb-6">
+                      <table className="w-full text-left text-[11px] border-collapse leading-normal min-w-[800px]">
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-200 font-bold text-black uppercase text-[9px] tracking-wider">
                             <th className="px-4 py-2.5">Date Échéance</th>

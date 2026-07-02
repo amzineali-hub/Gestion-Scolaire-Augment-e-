@@ -78,7 +78,7 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
   const childAttendance = attendance.filter(a => a.studentId === child.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-slate-50 font-sans">
+    <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-slate-50 font-sans">
       
       {/* Header Profile Area */}
       <div className="bg-white border-b border-slate-200 px-6 py-6 shrink-0">
@@ -109,8 +109,8 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-slate-200 px-6 shrink-0 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto flex gap-6 overflow-x-auto">
+      <div className="bg-white border-b border-slate-200 shrink-0 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto flex gap-4 sm:gap-6 overflow-x-auto px-4 sm:px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {[
             { id: 'overview', label: 'Vue d\'ensemble', icon: BookOpen },
             { id: 'grades', label: 'Relevés de notes', icon: Award },
@@ -124,7 +124,7 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as PortalTab)}
-                className={`py-4 flex items-center gap-2 font-bold text-sm border-b-2 transition-colors whitespace-nowrap ${
+                className={`py-4 flex items-center gap-2 font-bold text-sm border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                   isActive 
                     ? 'border-indigo-600 text-indigo-600' 
                     : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
@@ -139,8 +139,8 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 w-full">
+        <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
           
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
@@ -216,41 +216,43 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
           {/* GRADES TAB */}
           {activeTab === 'grades' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h3 className="font-extrabold text-slate-800 text-lg">Relevé de notes - Trimestre 1</h3>
-                <button className="text-xs font-bold bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-xs hover:bg-slate-50">
+              <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <h3 className="font-extrabold text-slate-800 text-base sm:text-lg">Relevé de notes - Trimestre 1</h3>
+                <button className="text-[10px] sm:text-xs font-bold bg-white border border-slate-200 px-2 sm:px-3 py-1.5 rounded-lg shadow-xs hover:bg-slate-50">
                   Télécharger PDF
                 </button>
               </div>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
-                    <th className="p-4 font-bold">Matière</th>
-                    <th className="p-4 font-bold text-center">Coeff</th>
-                    <th className="p-4 font-bold text-center">Note /20</th>
-                    <th className="p-4 font-bold">Appréciation</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {mockGrades.map((g, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50">
-                      <td className="p-4 font-bold text-slate-800 text-sm">{g.subject}</td>
-                      <td className="p-4 text-center font-medium text-slate-500">{g.coeff}</td>
-                      <td className="p-4 text-center">
-                        <span className={`inline-flex font-black text-sm px-2 py-0.5 rounded-lg ${
-                          g.grade >= 16 ? 'bg-emerald-100 text-emerald-800' :
-                          g.grade >= 12 ? 'bg-blue-100 text-blue-800' :
-                          g.grade >= 10 ? 'bg-amber-100 text-amber-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {g.grade}
-                        </span>
-                      </td>
-                      <td className="p-4 text-xs font-medium text-slate-600 italic">"{g.comment}"</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider">
+                      <th className="p-3 sm:p-4 font-bold">Matière</th>
+                      <th className="p-3 sm:p-4 font-bold text-center">Coeff</th>
+                      <th className="p-3 sm:p-4 font-bold text-center">Note /20</th>
+                      <th className="p-3 sm:p-4 font-bold">Appréciation</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {mockGrades.map((g, i) => (
+                      <tr key={i} className="hover:bg-slate-50/50">
+                        <td className="p-3 sm:p-4 font-bold text-slate-800 text-xs sm:text-sm whitespace-nowrap">{g.subject}</td>
+                        <td className="p-3 sm:p-4 text-center font-medium text-slate-500 text-xs sm:text-sm">{g.coeff}</td>
+                        <td className="p-3 sm:p-4 text-center">
+                          <span className={`inline-flex font-black text-xs sm:text-sm px-2 py-0.5 rounded-lg ${
+                            g.grade >= 16 ? 'bg-emerald-100 text-emerald-800' :
+                            g.grade >= 12 ? 'bg-blue-100 text-blue-800' :
+                            g.grade >= 10 ? 'bg-amber-100 text-amber-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {g.grade}
+                          </span>
+                        </td>
+                        <td className="p-3 sm:p-4 text-[10px] sm:text-xs font-medium text-slate-600 italic">"{g.comment}"</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -261,8 +263,9 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
               {childAttendance.length === 0 ? (
                  <p className="text-slate-500 text-sm">Aucun historique d'absence ou de retard n'a été enregistré.</p>
               ) : (
-                <div className="space-y-3">
-                  {childAttendance.map(record => (
+                <div className="overflow-x-auto">
+                  <div className="space-y-3 min-w-[600px]">
+                    {childAttendance.map(record => (
                     <div key={record.id} className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50">
                       <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
                         record.status === 'présent' ? 'bg-emerald-100 text-emerald-600' :
@@ -288,6 +291,7 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
                       )}
                     </div>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -297,8 +301,9 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
           {activeTab === 'homework' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 className="font-extrabold text-slate-800 text-lg mb-4">Cahier de textes & Devoirs</h3>
-              <div className="space-y-4">
-                {mockHomework.map(hw => (
+              <div className="overflow-x-auto">
+                <div className="space-y-4 min-w-[600px]">
+                  {mockHomework.map(hw => (
                   <div key={hw.id} className={`p-4 rounded-xl border ${hw.status === 'completed' ? 'bg-slate-50 border-slate-200 opacity-75' : 'bg-white border-indigo-100 shadow-xs'}`}>
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-wider">{hw.subject}</span>
@@ -313,6 +318,7 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
                     </p>
                   </div>
                 ))}
+                </div>
               </div>
             </div>
           )}
@@ -321,8 +327,9 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
           {activeTab === 'announcements' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 className="font-extrabold text-slate-800 text-lg mb-4">Annonces de l'école</h3>
-              <div className="space-y-6">
-                {mockAnnouncements.map(ann => (
+              <div className="overflow-x-auto">
+                <div className="space-y-6 min-w-[600px]">
+                  {mockAnnouncements.map(ann => (
                   <div key={ann.id} className="flex gap-4">
                     <div className="mt-1">
                       <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
@@ -340,6 +347,7 @@ export default function ParentPortal({ students, classes, schedules, subjects, a
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             </div>
           )}
